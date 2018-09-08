@@ -1,4 +1,4 @@
-print("KAI QUINTEN")
+print("KAI QUINTEN ROCK")
 
 import billiards.util.superimporter
 
