@@ -1,5 +1,5 @@
 import os
-import numpy
+import numpy as np
 
 def test_numba_cuda():
     import numba as nb
