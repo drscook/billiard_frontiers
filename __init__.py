@@ -1,5 +1,3 @@
-print('update working')
-
 import billiards.util.superimporter
 
 import os
