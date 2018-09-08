@@ -1,7 +1,9 @@
+pkg = 'Numba.Cuda'
+
 import os
 import numpy as np
 
-def test_numba_cuda():
+def test():
     import numba as nb
     import numba.cuda as cuda
     A = np.arange(3)
@@ -19,7 +21,7 @@ def test_numba_cuda():
 
     A *= 2
     if np.allclose(A, A_gpu.copy_to_host()):
-        return True, "Numba Cuda IS INSTALLED AND WORKINNG!!  IGNORE ANY MESSAGES ABOVE THAT SAY DIFFERENTLY!!\n"
+        return True, f"{pkg} IS INSTALLED AND WORKINNG!!  IGNORE ANY MESSAGES ABOVE THAT SAY DIFFERENTLY!!\n"
     else:
         return False, None
 
@@ -31,7 +33,7 @@ def install_conda():
     os.system('conda install -c numba cudatoolkit')
     os.system('conda install -c numba numba')
 
-def install_pip():
+def install_apt_get():
     os.system('apt-get update')
     os.system('apt install -y --no-install-recommends -q nvidia-cuda-toolkit')
     os.system('apt-get update')
@@ -40,16 +42,16 @@ def install_pip():
     os.system('pip install --upgrade numba')
 
 # Loop over installation options
-install_funcs = [install_none, install_conda, install_pip]
+install_funcs = [install_none, install_conda, _apt_get]
 for install_func in install_funcs:
     print('-----------------------------------------------------------------------------------------------------')
-    print(f"Trying to setup numba_cuda via {install_func.__name__.replace('_', ' ')}")
+    print(f"Trying to setup {pkg} via {install_func.__name__}")
     try:
         install_func()
     except:
         pass
     else:
-        is_working, message = test_numba_cuda()
+        is_working, message = test()
         if message:
             print(message)
         if is_working:
@@ -59,4 +61,4 @@ for install_func in install_funcs:
             print("That failed.")
 
 if not is_working:
-    raise Exception('Could not install numba_cuda')
+    raise Exception('Could not install {pkg}')
