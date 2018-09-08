@@ -1,3 +1,19 @@
+def insert_totals(df):
+    df = pd.DataFrame(df)
+    col_sums = df.sum(axis=0)
+    df.loc['TOTAL'] = col_sums
+    row_sums = df.sum(axis=1)
+    df['TOTAL'] = row_sums
+    return df
+
+
+
+def time_format(x):
+    h, m = np.divmod(x, 3600)
+    m, s = np.divmod(m, 60)
+    return f"{int(h):02d} hr {int(m):02d} min {s:05.02f} sec"
+
+
 def listify(X):
     """
     Ensure X is a list
