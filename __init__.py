@@ -34,11 +34,12 @@ pd.options.display.show_dimensions = True
 pd.options.display.max_rows = 20
 pd.options.display.max_columns = None
 
-def display(X):
-    if isinstance(X, pd.Series) or (isinstance(X, np.ndarray) and X.ndim <=2):
-        IPython.display.display(pd.DataFrame(X))
-    else:
-        IPython.display.display(X)
+def display(X, max_rows=20, max_columns=None):
+    with pd.option_context('display.max_rows', max_rows, 'display.max_columns', max_columns):
+        if isinstance(X, pd.Series) or (isinstance(X, np.ndarray) and X.ndim <=2):
+            IPython.display.display(pd.DataFrame(X))
+        else:
+            IPython.display.display(X)
     return
 
 
