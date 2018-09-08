@@ -1,4 +1,5 @@
 def test_numba_cuda():
+    import numpy as np
     import numba as nb
     import numba.cuda as cuda
     A = np.arange(3)
