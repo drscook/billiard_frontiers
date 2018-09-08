@@ -44,7 +44,7 @@ def setup_numba_cuda():
 
         A *= 2
         if np.allclose(A, A_gpu.copy_to_host()):
-            return True, f"{pkg} IS INSTALLED AND WORKINNG!!  IGNORE ANY MESSAGES ABOVE THAT SAY DIFFERENTLY!!\n"
+            return True, None
         else:
             return False, None
 
