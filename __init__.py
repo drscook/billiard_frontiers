@@ -11,4 +11,4 @@ import matplotlib.pyplot as plt
 
 np.set_printoptions(precision=4, suppress=True)
 
-import billiards.util.utility_functions as util
+# import billiards.util.utility_functions as util
