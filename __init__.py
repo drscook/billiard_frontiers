@@ -19,7 +19,7 @@ def nbr_formatter(x):
     mag = math.floor(math.log10(x)) + 1
     if mag < -display_digits:
         s = f"{x:.{display_digits-1}f}"
-    elif mag > digits:
+    elif mag > display_digits:
         s = f"{x:.{display_digits-2}e}"
     else:
         before = max(mag, 1)
