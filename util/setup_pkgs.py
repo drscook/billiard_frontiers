@@ -17,13 +17,13 @@ def installer(install_funcs, test, pkg):
                 print("That failed.")
 
     if not is_working:
-        raise Exception('Could not install {pkg}')
+        raise Exception(f"Could not install {pkg}")
         
         
         
         
 def setup_numba_cuda():
-    pkg = 'Numba.Cuda'
+    pkg = 'numba.cuda'
     import os
     import numpy as np
 
@@ -84,17 +84,13 @@ def setup_ffmpeg():
         pass
 
     def install_conda():
-        os.system('conda update conda')        
-        os.system('conda install -c numba cudatoolkit')
-        os.system('conda install -c numba numba')
+        os.system('conda install -c conda-forge ffmpeg')
 
     def install_apt_get():
+        os.system('add-apt-repository ppa:mc3man/trusty-media ')
         os.system('apt-get update')
-        os.system('apt install -y --no-install-recommends -q nvidia-cuda-toolkit')
-        os.system('apt-get update')
-        os.environ['NUMBAPRO_LIBDEVICE'] = "/usr/lib/nvidia-cuda-toolkit/libdevice"
-        os.environ['NUMBAPRO_NVVM'] = "/usr/lib/x86_64-linux-gnu/libnvvm.so"
-        os.system('pip install --upgrade numba')
+        os.system('apt-get install ffmpeg')
+        os.system('apt-get install frei0r-plugins')
 
     # Loop over installation options
     install_funcs = [install_none, install_conda, install_apt_get]
