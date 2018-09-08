@@ -15,7 +15,6 @@ def installer(install_funcs, test, pkg):
                 break
             else:
                 print("That failed.")
-
     if not is_working:
         raise Exception(f"Could not install {pkg}")
         
@@ -39,7 +38,7 @@ def setup_numba_cuda():
                 A[tx] = 2*A[tx]
             double_gpu[1,3](A_gpu)
         except cuda.CudaSupportError:
-            return False, "Are you sure you have a GPU?  If using Colab, Runtime->Change Runtime Type->Hardware accelerator = GPU"  # Add message to stop early
+            return False, "Are you sure you have a GPU?  If using Colab, Runtime->Change Runtime Type->Hardware accelerator = GPU"
         except cuda.cudadrv.nvvm.NvvmSupportError:
             return False, None
 
@@ -65,7 +64,6 @@ def setup_numba_cuda():
         os.environ['NUMBAPRO_NVVM'] = "/usr/lib/x86_64-linux-gnu/libnvvm.so"
         os.system('pip install --upgrade numba')
 
-    # Loop over installation options
     install_funcs = [install_none, install_conda, install_apt_get]
     installer(install_funcs, test, pkg)
     
@@ -92,6 +90,5 @@ def setup_ffmpeg():
         os.system('apt-get install ffmpeg')
         os.system('apt-get install frei0r-plugins')
 
-    # Loop over installation options
     install_funcs = [install_none, install_conda, install_apt_get]
     installer(install_funcs, test, pkg)
