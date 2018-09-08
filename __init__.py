@@ -1,4 +1,4 @@
-print("KAI)
+print("KAI")
 
 import billiards.util.superimporter
 
