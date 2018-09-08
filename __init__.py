@@ -17,13 +17,13 @@ from timeit import default_timer as timer
 display_digits = 3
 def nbr_formatter(x):
     mag = math.floor(math.log10(x)) + 1
-    if mag < -1*digits:
-        s = f"{x:.{digits-1}f}"
+    if mag < -display_digits:
+        s = f"{x:.{display_digits-1}f}"
     elif mag > digits:
-        s = f"{x:.{digits-2}e}"
+        s = f"{x:.{display_digits-2}e}"
     else:
         before = max(mag, 1)
-        after = digits - before
+        after = display_digits - before
         s = f"{x:{before}.{after}f}"
     return s
 
