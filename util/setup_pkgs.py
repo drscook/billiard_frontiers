@@ -67,5 +67,5 @@ def setup_numba_cuda():
         os.system('pip install --upgrade numba')
 
     # Loop over installation options
-    install_funcs = [install_none, install_conda, _apt_get]
+    install_funcs = [install_none, install_conda, install_apt_get]
     installer(install_funcs, pkg)
