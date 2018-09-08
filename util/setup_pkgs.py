@@ -1,4 +1,4 @@
-def installer(install_funcs, pkg):
+def installer(install_funcs, test, pkg):
     for install_func in install_funcs:
         print('-----------------------------------------------------------------------------------------------------')
         print(f"Trying to setup {pkg} via {install_func.__name__}")
@@ -68,4 +68,4 @@ def setup_numba_cuda():
 
     # Loop over installation options
     install_funcs = [install_none, install_conda, install_apt_get]
-    installer(install_funcs, pkg)
+    installer(install_funcs, test, pkg)
