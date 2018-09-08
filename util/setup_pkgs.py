@@ -1,3 +1,5 @@
+print("HELLO")
+
 def installer(install_funcs, test, pkg):
     for install_func in install_funcs:
         print('-----------------------------------------------------------------------------------------------------')
