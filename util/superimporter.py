@@ -16,5 +16,5 @@ class PipFinder(MetaPathFinder):
             return None
         return util.find_spec(self)
 
-if __name__ == "__main__":
-    sys.meta_path.append(PipFinder)
+
+sys.meta_path.append(PipFinder)
