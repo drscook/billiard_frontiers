@@ -18,3 +18,5 @@ from billiards.util.display_preferences import *
 plt.style.use("fivethirtyeight")
 
 from billiards.collision_laws.pw_collision_laws import *
+from billiards.collision_laws.pp_collision_laws import *
+from billiards.collision_laws.no_slip_functions import *
