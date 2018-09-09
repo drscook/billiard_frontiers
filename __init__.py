@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from billiards.util import utility_functions as util
+from billiards.util import utility_functions as ut
 from timeit import default_timer as timer
 
 from billiards.util.display_preferences import *
