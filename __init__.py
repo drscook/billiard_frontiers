@@ -17,6 +17,7 @@ from timeit import default_timer as timer
 from billiards.util.display_preferences import *
 plt.style.use("fivethirtyeight")
 
-from billiards.collision_laws.pw_collision_laws import *
-from billiards.collision_laws.pp_collision_laws import *
-from billiards.collision_laws.no_slip_functions import *
+from billiards.dynamics.no_slip_functions import *
+from billiards.dynamics.pw_collision_laws import *
+from billiards.dynamics.pp_collision_laws import *
+from billiards.dynamics.particles import *
