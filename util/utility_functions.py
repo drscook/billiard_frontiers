@@ -1,5 +1,4 @@
-# from .common_imports import *
-
+from .common_imports import *
 
 def insert_totals(df):
     df = pd.DataFrame(df)

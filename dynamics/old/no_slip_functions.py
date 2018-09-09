@@ -14,7 +14,7 @@ def spin_mat_from_vec(v):
     w = v * s
     w = w[::-1]
     M[idx] = w
-    M = ut.make_symmetric(M, skew=True)
+    M = make_symmetric(M, skew=True)
     return M
 
 def spin_vec_from_mat(M):

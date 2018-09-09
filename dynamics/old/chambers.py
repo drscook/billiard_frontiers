@@ -40,7 +40,7 @@ def box(cell_size):
         for s in [-1,1]:
             v = np.zeros(dim, dtype=np_dtype)
             v[d] = s*L
-            walls.append(FlatWall(dim=dim, base_point=v.copy(), normal=-v.copy()
+            walls.append(wl.FlatWall(dim=dim, base_point=v.copy(), normal=-v.copy()
                                    ,tangents = np.delete(Tangents,d,0)))
     return walls
 

@@ -7,7 +7,7 @@ class Wall():
         self.dim = dim
         self.base_point = np.asarray(base_point, dtype=np_dtype)
         self.temp = 1.0
-        self.pw_collision_law = PW_SpecularLaw()
+        self.pw_collision_law = pwclsn.PW_SpecularLaw()
         self.side = side
         if side == 'outside':
             self.sign = 1
@@ -46,7 +46,7 @@ class FlatWall(Wall):
     def __init__(self, dim, base_point, normal, tangents):
         super().__init__(dim, base_point)
         self.name = 'flat'
-        self.normal_static = make_unit(normal)
+        self.normal_static = ut.make_unit(normal)
         self.tangents = np.asarray(tangents, dtype=np_dtype)
         self.data[0,0] = 0
         self.data[2,:] = self.normal_static.copy()
