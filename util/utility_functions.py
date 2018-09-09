@@ -1,3 +1,6 @@
+# from .common_imports import *
+
+
 def insert_totals(df):
     df = pd.DataFrame(df)
     col_sums = df.sum(axis=0)

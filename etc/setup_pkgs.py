@@ -1,3 +1,9 @@
+import os
+import shutil
+import numpy as np
+
+
+
 def installer(install_funcs, test, pkg):
     for install_func in install_funcs:
         print('-----------------------------------------------------------------------------------------------------')
@@ -23,8 +29,6 @@ def installer(install_funcs, test, pkg):
         
 def setup_numba_cuda():
     pkg = 'numba.cuda'
-    import os
-    import numpy as np
 
     def test():
         import numba as nb
@@ -68,8 +72,6 @@ def setup_numba_cuda():
     
 def setup_ffmpeg():
     pkg = 'ffmpeg'
-    import os
-    import shutil
 
     def test():
         is_working = shutil.which('ffmpeg') is not None
@@ -89,3 +91,31 @@ def setup_ffmpeg():
 
     install_funcs = [install_none, install_conda, install_apt_get]
     installer(install_funcs, test, pkg)
+    
+    
+    
+    
+# def setup_google_drive():
+#     try:    
+#         os.chdir(path)
+#     except:
+#         !apt-get install -y -qq software-properties-common python-software-properties module-init-tools
+#         !add-apt-repository -y ppa:alessandro-strada/ppa 2>&1 > /dev/null
+#         !apt-get update -qq 2>&1 > /dev/null
+#         !apt-get -y install -qq google-drive-ocamlfuse fuse
+
+#         from google.colab import auth
+#         auth.authenticate_user()
+#         from oauth2client.client import GoogleCredentials
+#         creds = GoogleCredentials.get_application_default()
+#         import getpass
+
+#         !google-drive-ocamlfuse -headless -id={creds.client_id} -secret={creds.client_secret} < /dev/null 2>&1 | grep URL
+#         vcode = getpass.getpass()
+#         !echo {vcode} | google-drive-ocamlfuse -headless -id={creds.client_id} -secret={creds.client_secret}
+
+
+#         !mkdir -p drive
+#         !google-drive-ocamlfuse drive
+
+#         os.chdir(path)

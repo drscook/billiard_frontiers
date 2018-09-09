@@ -1,4 +1,4 @@
-import
+from ..util import *
 
 # master wall class; subclass for each wall shape
 class Wall():
