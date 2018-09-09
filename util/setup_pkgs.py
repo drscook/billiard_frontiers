@@ -51,18 +51,15 @@ def setup_numba_cuda():
     def install_none():
         pass
 
-    def install_conda():
-        os.system('conda update conda')        
-        os.system('conda install -c numba cudatoolkit')
-        os.system('conda install -c numba numba')
+    def install_conda():        
+        os.system('conda install -c numba cudatoolkit')        
 
     def install_apt_get():
         os.system('apt-get update')
         os.system('apt install -y --no-install-recommends -q nvidia-cuda-toolkit')
         os.system('apt-get update')
         os.environ['NUMBAPRO_LIBDEVICE'] = "/usr/lib/nvidia-cuda-toolkit/libdevice"
-        os.environ['NUMBAPRO_NVVM'] = "/usr/lib/x86_64-linux-gnu/libnvvm.so"
-        os.system('pip install --upgrade numba')
+        os.environ['NUMBAPRO_NVVM'] = "/usr/lib/x86_64-linux-gnu/libnvvm.so"        
 
     install_funcs = [install_none, install_conda, install_apt_get]
     installer(install_funcs, test, pkg)
