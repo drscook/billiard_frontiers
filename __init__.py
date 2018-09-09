@@ -15,6 +15,6 @@ from billiards.util import utility_functions as ut
 from timeit import default_timer as timer
 
 from billiards.util.display_preferences import *
-
-
 plt.style.use("fivethirtyeight")
+
+from billiards.collision_laws.pw_collision_laws import *

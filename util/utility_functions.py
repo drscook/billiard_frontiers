@@ -82,3 +82,16 @@ def make_symmetric(A, skew=False):
         return U - U.T
     else:
         return np.triu(A,0) + U.T    
+    
+    
+    
+def random_uniform_sphere(num=1, dim=2, radius=1.0):
+    pos = rng.normal(size=[num, dim])
+    pos = make_unit(pos, axis=1)
+    return abs(radius) * pos
+
+
+def random_uniform_ball(num=1, dim=2, radius=1.0):
+    pos = random_uniform_sphere(num, dim, radius)
+    r = rng.uniform(size=[num, 1])
+    return r**(1/dim) * pos
