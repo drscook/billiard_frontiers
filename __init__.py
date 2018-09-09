@@ -17,7 +17,7 @@ from billiards.util import utility_functions as ut
 from billiards.util.display_preferences import *
 plt.style.use("fivethirtyeight")
 
-import tables
+# import tables
 
 # from billiards.dynamics.no_slip_functions import *
 # from billiards.dynamics.pw_collision_laws import *
