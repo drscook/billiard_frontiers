@@ -1,5 +1,6 @@
 from copy import copy
 import math
+import IPython.display
 import numpy as np
 import pandas as pd
 
