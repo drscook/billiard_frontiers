@@ -15,4 +15,6 @@ class PipFinder(MetaPathFinder):
         except subprocess.CalledProcessError:
             return None
         return util.find_spec(self)
-sys.meta_path.append(PipFinder)
+
+if __name__ == "__main__":
+    sys.meta_path.append(PipFinder)
