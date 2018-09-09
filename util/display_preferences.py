@@ -4,6 +4,8 @@ import IPython.display
 import numpy as np
 import pandas as pd
 
+plt.style.use("fivethirtyeight")
+
 class Formatter():
     def __init__(self, digits=4, max_rows=20, max_cols=None):
         self.digits = digits
