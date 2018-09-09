@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from billiards.util import utility_functions as util
 from timeit import default_timer as timer
 
-from billiard.util.display_preferences import *
+from billiards.util.display_preferences import *
 
 
 plt.style.use("fivethirtyeight")
