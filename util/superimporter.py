@@ -17,4 +17,4 @@ class PipFinder(MetaPathFinder):
         return util.find_spec(self)
 
 
-sys.meta_path.append(PipFinder)
+sys.meta_path.append(PipFinder())
