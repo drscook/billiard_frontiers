@@ -1,6 +1,3 @@
-from ..util import *
-from . import *
-
 # master wall class; subclass for each wall shape
 class Wall():
     def __init__(self, dim, base_point, side='outside'):

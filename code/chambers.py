@@ -1,6 +1,3 @@
-from .. util import *
-from . import *
-
 def parallel_planes(width):
     walls = []
     walls.append(FlatWall(base_point = [0, width, 0], normal = [0, -1, 0], tangents = [[1, 0, 0], [0, 0, 1]], side='inside'))
@@ -40,7 +37,7 @@ def box(cell_size):
         for s in [-1,1]:
             v = np.zeros(dim, dtype=np_dtype)
             v[d] = s*L
-            walls.append(wl.FlatWall(dim=dim, base_point=v.copy(), normal=-v.copy()
+            walls.append(FlatWall(dim=dim, base_point=v.copy(), normal=-v.copy()
                                    ,tangents = np.delete(Tangents,d,0)))
     return walls
 

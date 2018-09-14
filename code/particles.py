@@ -1,12 +1,23 @@
 class Particles():
-    def __init__(self):
+    def __init__(self, dim, num_part, mass=1.0, radius=1.0, gamma='uniform', temp=1.0):
         self.dim = dim
         self.num = num_part
-        self.mass = np.full(self.num, 1.0, dtype=np_dtype)
-        self.radius = np.full(self.num, 1.0, dtype=np_dtype)
-        gamma = {'uniform':np.sqrt(2/(2+self.dim)), 'shell':np.sqrt(2/self.dim), 'point':0.0}
-        self.gamma = np.full(self.num, gamma['uniform'], dtype=np_dtype)
-        self.temp = np.full(self.num, 1.0, dtype=np_dtype)
+        self.mass = np.full(self.num, mass, dtype=np_dtype)
+        self.radius = np.full(self.num, radius, dtype=np_dtype)
+
+        g = np.sqrt(2/(2+self.dim))   # uniform mass distribution
+        if gamma == 'shell':
+            g = np.sqrt(2/self.dim)
+        elif gamma == 'point':
+            g = 0.0
+        else:
+            try:
+                if (gamma >= 0) & (gamma <= np.sqrt(2/self.dim)):
+                    g = gamma
+            except:
+                pass
+        self.gamma = np.full(self.num, g, dtype=np_dtype)
+        self.temp = np.full(self.num, temp, dtype=np_dtype)
         
         self.pos = np.full([self.num, self.dim], np.inf, dtype=np_dtype)
         self.pos_loc = self.pos.copy()
