@@ -1,7 +1,7 @@
 class Particles():
-    def __init__(self, dim, num_part, mass=1.0, radius=1.0, gamma='uniform', temp=1.0):
+    def __init__(self, dim=dim, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp):
         self.dim = dim
-        self.num = num_part
+        self.num = num
         self.mass = np.full(self.num, mass, dtype=np_dtype)
         self.radius = np.full(self.num, radius, dtype=np_dtype)
 
