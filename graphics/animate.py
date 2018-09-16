@@ -31,7 +31,7 @@ def read_and_interpolate(date=None, run=None, max_steps=None):
     dts = np.diff(t)
     dt_median = np.percentile(dts, 50)
     short_step = dts < (dt_median / 1000)
-    nominal_frame_length = np.percentile(dts[~short_step], 25)
+    nominal_frame_length = np.percentile(dts[~short_step], 10)
     num_frames = np.round(dts / nominal_frame_length).astype(int) # Divide each step into pieces of length as close to nominal_frame_length as possible
     num_frames[num_frames<1] = 1
     ddts = dts / num_frames  # Compute frame length within each step
@@ -72,8 +72,12 @@ def animate(part_params, wall_params, data, run_time=20):
     t = data['t']
     x = data['pos']
     o = data['orient']
+    mesh = np.asarray(part_params['mesh'])
+    clr = part_params['clr']
+#     print(clr.shape)
     
-    frames = len(t)
+    frame_num, part_num, dim = x.shape
+    
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
     for trans in translates:
@@ -83,13 +87,13 @@ def animate(part_params, wall_params, data, run_time=20):
     time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
     path = []
     bdy = []
-    for p in range(part_params['num']):
-        path.append(ax.plot([],[], color=part.clr[p])[0])
-        bdy.append(ax.plot([],[], color=part.clr[p])[0])
+    for p in range(part_num):
+        path.append(ax.plot([],[], color=clr[p])[0])
+        bdy.append(ax.plot([],[], color=clr[p])[0])
 
     def init():
         time_text.set_text('')
-        for p in range(part.num):
+        for p in range(part_num):
             path[p].set_data([], [])
             bdy[p].set_data([], [])
         return path + bdy
@@ -97,12 +101,12 @@ def animate(part_params, wall_params, data, run_time=20):
     def update(s):
         time_text.set_text(f"step {s}, time {t[s]:.2f}")
 #         step_text.set_text('time = %.1f' % pendulum.time_elapsed)
-        for p in range(part.num):
+        for p in range(part_num):
             path[p].set_data(*(x[:s+1,p].T))
-            bdy[p].set_data(*((part.mesh[p].dot(o[s,p].T) + x[s,p]).T))
+            bdy[p].set_data(*((mesh[p].dot(o[s,p].T) + x[s,p]).T))
         return path + bdy
     anim = animation.FuncAnimation(fig, update, init_func=init,
-                                   frames=frames, interval=run_time*1000/frames, blit=True)
+                                   frames=frame_num, interval=run_time*1000/frame_num, blit=True)
     plt.close()
     return anim
 
