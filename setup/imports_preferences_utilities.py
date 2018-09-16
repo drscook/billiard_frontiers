@@ -14,7 +14,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import numba as nb
+
 
 try:
     import tables
@@ -22,6 +22,14 @@ except:
     os.system('pip install --upgrade tables')
     import tables
 
+try:
+    import numba as nb
+except:
+    os.system('pip install --upgrade numba')
+    import numba as nb
+
+
+    
 ##################################################################
 ### Display Preferences ###
 ##################################################################
