@@ -1,12 +1,11 @@
 class Particles():
-    def __init__(self, dim=dim, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp, pp_collision_law=PP_SpecularLaw, record_vars=record_vars):
+    def __init__(self, dim=dim, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp, pp_collision_law=PP_SpecularLaw):
         self.dim = dim
         self.num = num
-        self.mass = np.full(self.num, mass, dtype=np_dtype)
-        self.radius = np.full(self.num, radius, dtype=np_dtype)
+        self.mass = np.full(self.num, mass, dtype=np_dtype)        
+        self.radius = np.full(shape=self.num, fill_value=radius, dtype=np_dtype)
         self.temp = np.full(self.num, temp, dtype=np_dtype)
         self.pp_collision_law = pp_collision_law()
-        self.record_vars = record_vars
         
         g = np.sqrt(2/(2+self.dim))   # uniform mass distribution
         if gamma == 'shell':
@@ -21,19 +20,18 @@ class Particles():
                 pass
         self.gamma = np.full(self.num, g, dtype=np_dtype)
         
-        
         self.pos = np.full([self.num, self.dim], np.inf, dtype=np_dtype)
         self.pos_loc = self.pos.copy()
         self.vel = np.full([self.num, self.dim], np.inf, dtype=np_dtype)
-        
-        self.dim_spin = int(self.dim * (self.dim - 1) / 2)
-        self.orient = np.full([self.num, self.dim, self.dim], np.inf, dtype=np_dtype)
         self.spin = np.full([self.num, self.dim, self.dim], np.inf, dtype=np_dtype)
 
         self.t = 0.0
         self.col = {}
         
-        
+        self.record_params = ['mesh', 'dim', 'num', 'mass', 'radius', 'temp', 'gamma', 'mom_inert'
+                            , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr']
+        self.record_vars = ['t', 'pos', 'vel', 'spin']
+
 
 
     def get_mesh(self):
@@ -97,7 +95,7 @@ class Particles():
 
     def rand_vel(self, p):
 #         print('randomizing vel {}'.format(p))
-        self.vel[p] = rng.normal(0.0, self.sigma_lin[p], size=dim)
+        self.vel[p] = rng.normal(0.0, self.sigma_vel[p], size=dim)
     
     def rand_spin(self, p):
         v = [rng.normal(0.0, self.sigma_spin[p]) for d in range(self.dim_spin)]
@@ -128,27 +126,40 @@ class Particles():
             raise Exception('A particle has invalid orintation or spin matrix')
         return True
     
-
-#     def clean_up(self):
-#         part.t_hist = np.asarray(part.t_hist)
-#         part.pos_hist = np.asarray(part.pos_hist)
-#         part.vel_hist = np.asarray(part.vel_hist)
-# #         part.orient_hist = np.asarray(part.orient_hist)
-#         part.spin_hist = np.asarray(part.spin_hist)
-#         part.KE_lin_hist = np.asarray(part.KE_lin_hist)
-#         part.KE_ang_hist = np.asarray(part.KE_ang_hist)
-#         part.KE_tot_hist = np.asarray(part.KE_tot_hist)
-#         part.num_steps = len(part.t_hist)
-#         part.num_frames = part.num_steps
-        
+    def params(self):
+        def f(x):
+            try:
+                return x.tolist()
+            except:
+                return x
+        d = {param:f(getattr(self, param)) for param in self.record_params}
+        d['pp_collision_law'] = self.pp_collision_law.name            
+        return d
         
     def record_init(self):
         if self.write_to_file:
-            self.run_path = root_path + time_stamp() + '/'
+            date = str(datetime.date.today())            
+            self.run_date = date
+            self.run_time = time_stamp()
+
+            date_path = root_path + date + '/'
+            M = get_last_file_in_dir(date_path)            
+            self.run_path = date_path + str(M+1) + '/'
             os.makedirs(self.run_path, exist_ok=True)
+           
             self.data_filename = self.run_path + 'data.hdf5'
             self.data_file = tables.open_file(self.data_filename, mode='w')
+            
+            self.part_params_filename = self.run_path + 'part_params.json'
+            with open(self.part_params_filename, "w") as part_file:
+                d = self.params()
+                json.dump(d, part_file)
 
+            self.wall_params_filename = self.run_path + 'wall_params.json'
+            with open(self.wall_params_filename, "w") as wall_file:
+                d = [w.params() for w in walls]
+                json.dump(d, wall_file)
+            
         for v in self.record_vars:
             x = np.asarray(getattr(self, v))
             z = np.zeros(shape=(self.record_period, *x.shape), dtype=x.dtype)
@@ -161,10 +172,8 @@ class Particles():
                                              ,filters=table_filters
                                              ,chunkshape=z.shape
                                              ,expectedrows=max_steps)
-#                 tbl.append(x)
+#                 tbl.append(z)
                 setattr(self, f"{v}_storage", tbl)                
-                
-
     
 
     def record(self):
@@ -183,21 +192,3 @@ class Particles():
             self.record_ptr = 0
         else:
             self.record_ptr += 1
-
-
-        
-    
-#     def rec(self):
-#         self.rec_ptr += 1
-#         for v in self.data_vars:
-#             if self.rec_ptr >= write_period-1:
-            
-
-        
-#     def record(self):
-#         rec = {'t_hist' : self.t_hist
-#               ,'pos_hist' : self.pos_hist 
-#               ,'vel_hist' : self.vel_hist 
-#               ,'spin_hist' : self.spin_hist 
-#               ,'radius' : self.radius
-#               ,'pos_hist' : self.pos_hist 

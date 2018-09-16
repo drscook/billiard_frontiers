@@ -9,6 +9,7 @@ import itertools as it
 import IPython.display
 from timeit import default_timer as timer
 import datetime
+import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -96,6 +97,18 @@ def time_format(x):
 def time_stamp():
     now = datetime.datetime.now()
     return f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{round(now.microsecond/10000)}"
+
+
+def get_last_file_in_dir(path):
+        os.makedirs(path, exist_ok=True)
+        ls = os.listdir(path)
+        ls.append(-1)
+        def f(x):
+            try:
+                return int(x)
+            except:
+                return -1
+        return sorted(map(f,ls))[-1]
 
 
 def listify(X):

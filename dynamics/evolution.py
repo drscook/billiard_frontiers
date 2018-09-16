@@ -6,7 +6,6 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
 
     if mode == 'parallel':
         initialize_gpu(part)
-
     
     assert (record_period >= 1), 'record_period must be >= 1'
     part.record_period = min(record_period, max_steps)
@@ -16,6 +15,7 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
     part.record_init()
     part.record()
 
+    
     for step in range(1,max_steps):
         next_state(part, walls)
         part.record()
@@ -52,7 +52,7 @@ def initialize(part, walls):
     np.fill_diagonal(part.pp_gap_min, -1)
     
     part.mom_inert = part.mass * (part.gamma * part.radius)**2
-    part.sigma_lin = np.sqrt(BOLTZ * part.temp / part.mass)
+    part.sigma_vel = np.sqrt(BOLTZ * part.temp / part.mass)
     part.sigma_spin = np.sqrt(BOLTZ * part.temp / part.mom_inert)
     part.pos_loc = part.pos.copy()
 
@@ -61,8 +61,6 @@ def initialize(part, walls):
             part.rand_pos(p)
         if np.any(np.isinf(part.vel[p])):
             part.rand_vel(p)
-        if np.any(np.isinf(part.orient[p])):
-            part.orient[p] = np.eye(part.dim)
         if np.any(np.isinf(part.spin[p])):
             part.spin[p,:,:] = 0.0
 #             part.rand_spin(p)
@@ -78,7 +76,9 @@ def initialize(part, walls):
     part.pp_mask = np.full([part.num, part.num], False, dtype=bool)
     part.pw_mask = np.full([part.num, len(walls)], False, dtype=bool)
     
-    
+    part.get_mesh()
+    for w in walls:
+        w.get_mesh()
     part.KE_init = part.get_KE()
     part.check()
     

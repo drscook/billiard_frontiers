@@ -23,4 +23,3 @@ part_mass = 1.0
 part_radius = 1.0
 part_gamma = 'uniform'
 part_temp = 1.0
-record_vars = ['t', 'pos', 'vel', 'spin']#, 'col']

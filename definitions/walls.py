@@ -16,6 +16,17 @@ class Wall():
         self.pw_gap_b = 0.0
         self.data = np.full([3, dim], np.inf, dtype=np_dtype)
         self.data[1,:] = self.base_point.copy()
+        self.record_params = ['dim', 'base_point', 'temp', 'side', 'name', 'mesh']
+    
+    def params(self):
+        def f(x):
+            try:
+                return x.tolist()
+            except:
+                return x
+        d = {param:f(getattr(self, param)) for param in self.record_params}
+        d['pw_collision_law'] = self.pw_collision_law.name            
+        return d
     
     @staticmethod
     def get_mesh():
@@ -47,6 +58,7 @@ class FlatWall(Wall):
         self.tangents = np.asarray(tangents, dtype=np_dtype)
         self.data[0,0] = 0
         self.data[2,:] = self.normal_static.copy()
+        self.record_params.extend(['normal_static', 'tangents'])
         
     def normal(self, pos):
         return self.normal_static
@@ -83,6 +95,7 @@ class SphereWall(Wall):
         self.radius = radius
         self.pw_gap_b = radius
         self.data[0,0] = 1
+        self.record_params.extend(['radius'])
 
     def normal(self, pos):
         dx = pos - self.base_point
