@@ -1,10 +1,13 @@
 class Particles():
-    def __init__(self, dim=dim, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp):
+    def __init__(self, dim=dim, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp, pp_collision_law=PP_SpecularLaw, record_vars=record_vars):
         self.dim = dim
         self.num = num
         self.mass = np.full(self.num, mass, dtype=np_dtype)
         self.radius = np.full(self.num, radius, dtype=np_dtype)
-
+        self.temp = np.full(self.num, temp, dtype=np_dtype)
+        self.pp_collision_law = pp_collision_law()
+        self.record_vars = record_vars
+        
         g = np.sqrt(2/(2+self.dim))   # uniform mass distribution
         if gamma == 'shell':
             g = np.sqrt(2/self.dim)
@@ -17,7 +20,7 @@ class Particles():
             except:
                 pass
         self.gamma = np.full(self.num, g, dtype=np_dtype)
-        self.temp = np.full(self.num, temp, dtype=np_dtype)
+        
         
         self.pos = np.full([self.num, self.dim], np.inf, dtype=np_dtype)
         self.pos_loc = self.pos.copy()
@@ -30,27 +33,18 @@ class Particles():
         self.t = 0.0
         self.col = {}
         
-        self.pp_collision_law = PP_SpecularLaw()
         
-        self.t_hist = []
-        self.pos_hist = []
-        self.vel_hist = []
-#         self.orient_hist = []
-        self.spin_hist = []
-        self.col_hist = []
-        self.KE_lin_hist = []
-        self.KE_ang_hist = []
-        self.KE_tot_hist = []
+
 
     def get_mesh(self):
         S = sphere_mesh(self.dim, 1.0)
         if self.dim == 2:
             S = np.vstack([S, [-1,0]])
 
-        part.mesh = []
-        for p in range(part.num):
+        self.mesh = []
+        for p in range(self.num):
             self.mesh.append(S*self.radius[p]) # see visualize.py
-        part.mesh = np.asarray(part.mesh)
+        self.mesh = np.asarray(self.mesh)
             
         # pretty color for visualization
         cm = plt.cm.gist_rainbow
@@ -58,7 +52,7 @@ class Particles():
         self.clr = [cm(i) for i in idx]
         
     def get_pp_col_coefs(self, gap_only=False):
-        dx = cross_subtract(part.pos)
+        dx = cross_subtract(self.pos)
         c0 = np.einsum('pqd, pqd -> pq', dx, dx)
         if gap_only == True:
             return np.sqrt(c0) - self.pp_gap_min
@@ -80,7 +74,7 @@ class Particles():
     def check_pos(self):
         self.get_pw_gap()
         pw_overlap = np.any(self.pw_gap < -thresh)
-        if isinstance(part.pp_collision_law, PP_IgnoreLaw) == False:
+        if isinstance(self.pp_collision_law, PP_IgnoreLaw) == False:
             self.get_pp_gap()
             pp_overlap = np.any(self.pp_gap < -thresh)
         else:
@@ -102,7 +96,7 @@ class Particles():
         raise Exception('Could not place particle {}'.format(p))
 
     def rand_vel(self, p):
-        print('randomizing vel {}'.format(p))
+#         print('randomizing vel {}'.format(p))
         self.vel[p] = rng.normal(0.0, self.sigma_lin[p], size=dim)
     
     def rand_spin(self, p):
@@ -130,32 +124,75 @@ class Particles():
             raise Exception('A particle escaped')
 #         if abs(1-self.KE_init/self.get_KE()) > rel_tol:
 #             raise Exception(' KE not conserved')
-        if part.check_angular() == False:
+        if self.check_angular() == False:
             raise Exception('A particle has invalid orintation or spin matrix')
         return True
     
-    def record_state(self):
-        self.t_hist.append(self.t)
-        self.pos_hist.append(self.pos.copy())
-        self.vel_hist.append(self.vel.copy())
-#         self.orient_hist.append(self.orient.copy())
-        self.spin_hist.append(self.spin.copy())
-        self.col_hist.append(self.col)
-        self.KE_lin_hist.append(self.KE_lin)
-        self.KE_ang_hist.append(self.KE_ang)
-        self.KE_tot_hist.append(self.KE_tot)
 
-    def clean_up(self):
-        part.t_hist = np.asarray(part.t_hist)
-        part.pos_hist = np.asarray(part.pos_hist)
-        part.vel_hist = np.asarray(part.vel_hist)
-#         part.orient_hist = np.asarray(part.orient_hist)
-        part.spin_hist = np.asarray(part.spin_hist)
-        part.KE_lin_hist = np.asarray(part.KE_lin_hist)
-        part.KE_ang_hist = np.asarray(part.KE_ang_hist)
-        part.KE_tot_hist = np.asarray(part.KE_tot_hist)
-        part.num_steps = len(part.t_hist)
-        part.num_frames = part.num_steps
+#     def clean_up(self):
+#         part.t_hist = np.asarray(part.t_hist)
+#         part.pos_hist = np.asarray(part.pos_hist)
+#         part.vel_hist = np.asarray(part.vel_hist)
+# #         part.orient_hist = np.asarray(part.orient_hist)
+#         part.spin_hist = np.asarray(part.spin_hist)
+#         part.KE_lin_hist = np.asarray(part.KE_lin_hist)
+#         part.KE_ang_hist = np.asarray(part.KE_ang_hist)
+#         part.KE_tot_hist = np.asarray(part.KE_tot_hist)
+#         part.num_steps = len(part.t_hist)
+#         part.num_frames = part.num_steps
+        
+        
+    def record_init(self):
+        if self.write_to_file:
+            self.run_path = root_path + time_stamp() + '/'
+            os.makedirs(self.run_path, exist_ok=True)
+            self.data_filename = self.run_path + 'data.hdf5'
+            self.data_file = tables.open_file(self.data_filename, mode='w')
+
+        for v in self.record_vars:
+            x = np.asarray(getattr(self, v))
+            z = np.zeros(shape=(self.record_period, *x.shape), dtype=x.dtype)
+            z[0] = x.copy()
+            setattr(self, f"{v}_hist", z)
+            if self.write_to_file:
+                tbl = self.data_file.create_earray(self.data_file.root, v
+                                             ,tables.Atom.from_dtype(x.dtype)
+                                             ,shape=(0, *x.shape)                                   
+                                             ,filters=table_filters
+                                             ,chunkshape=z.shape
+                                             ,expectedrows=max_steps)
+#                 tbl.append(x)
+                setattr(self, f"{v}_storage", tbl)                
+                
+
+    
+
+    def record(self):
+        period_complete = (self.record_ptr+1 >= self.record_period)
+        
+        for v in self.record_vars:
+            val = getattr(self, v)
+            hist = getattr(self, f"{v}_hist")
+            hist[self.record_ptr] = val
+            if self.write_to_file & period_complete:
+                tbl = getattr(self, f"{v}_storage")
+                tbl.append(hist)
+
+        if period_complete:
+            print('Writing to file')
+            self.record_ptr = 0
+        else:
+            self.record_ptr += 1
+
+
+        
+    
+#     def rec(self):
+#         self.rec_ptr += 1
+#         for v in self.data_vars:
+#             if self.rec_ptr >= write_period-1:
+            
+
         
 #     def record(self):
 #         rec = {'t_hist' : self.t_hist

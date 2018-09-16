@@ -8,11 +8,18 @@ import math
 import itertools as it
 import IPython.display
 from timeit import default_timer as timer
+import datetime
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import numba as nb
 
+try:
+    import tables
+except:
+    os.system('pip install --upgrade tables')
+    import tables
 
 ##################################################################
 ### Display Preferences ###
@@ -80,11 +87,15 @@ def insert_totals(df):
     return df
 
 
-
 def time_format(x):
     h, m = np.divmod(x, 3600)
     m, s = np.divmod(m, 60)
     return f"{int(h):02d} hr {int(m):02d} min {s:05.02f} sec"
+
+
+def time_stamp():
+    now = datetime.datetime.now()
+    return f"{now.strftime('%Y-%m-%d-%H-%M-%S')}-{round(now.microsecond/10000)}"
 
 
 def listify(X):
