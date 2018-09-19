@@ -29,7 +29,7 @@ class Particles():
         self.col = {}
         
         self.record_params = ['mesh', 'dim', 'num', 'mass', 'radius', 'temp', 'gamma', 'mom_inert'
-                            , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr']
+                            , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr', 'cell_size']
         self.record_vars = ['t', 'pos', 'vel', 'spin']
 
 
@@ -126,7 +126,7 @@ class Particles():
             raise Exception('A particle has invalid orintation or spin matrix')
         return True
     
-    def params(self):
+    def get_params(self):
         def f(x):
             try:
                 return x.tolist()
@@ -152,12 +152,12 @@ class Particles():
             
             self.part_params_filename = self.run_path + 'part_params.json'
             with open(self.part_params_filename, "w") as part_file:
-                d = self.params()
+                d = self.get_params()
                 json.dump(d, part_file)
 
             self.wall_params_filename = self.run_path + 'wall_params.json'
             with open(self.wall_params_filename, "w") as wall_file:
-                d = [w.params() for w in walls]
+                d = [w.get_params() for w in walls]
                 json.dump(d, wall_file)
             
         for v in self.record_vars:

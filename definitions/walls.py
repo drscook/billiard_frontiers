@@ -3,6 +3,7 @@ class Wall():
     def __init__(self, base_point, side='outside'):
         self.base_point = np.asarray(base_point, dtype=np_dtype)
         self.dim = len(base_point)
+        self.clr = 'black'
         self.temp = 1.0
         self.pw_collision_law = PW_SpecularLaw()
         self.side = side
@@ -16,9 +17,9 @@ class Wall():
         self.pw_gap_b = 0.0
         self.data = np.full([3, self.dim], np.inf, dtype=np_dtype)
         self.data[1,:] = self.base_point.copy()
-        self.record_params = ['dim', 'base_point', 'temp', 'side', 'name', 'mesh']
+        self.record_params = ['dim', 'base_point', 'temp', 'side', 'name', 'mesh', 'clr']
     
-    def params(self):
+    def get_params(self):
         def f(x):
             try:
                 return x.tolist()

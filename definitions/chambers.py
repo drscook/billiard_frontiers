@@ -53,14 +53,15 @@ def sinai(cell_size, scatter_radius):
 def lorentz_rectangle(cell_size, scatter_radius):
     walls = sinai(cell_size, scatter_radius)
     s = -1
-    for (w, wall) in enumerate(walls[:-1]):
+    for (w, wall) in enumerate(walls[:4]):
         wall.pw_gap_m = 0.0
         wall.pw_gap_b = 0.0
         d = int(np.floor(w/2))
         s *= -1
-        wall.pw_collision_law = pwcls.PW_PeriodicLaw()
+        wall.pw_collision_law = PW_PeriodicLaw()
         wall.wrap_dim = d
         wall.wrap_wall_idx = w+s
+        wall.clr = 'clear'
     return walls
 
 def lorentz_hexagonal(scatter_radius, part_radius, horizon_factor):

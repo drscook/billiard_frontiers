@@ -3,6 +3,9 @@ import io
 import base64
 from IPython.display import HTML
 
+
+
+
 def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, distortion_max=0.3):
     import scipy.linalg
     if date is None:
@@ -84,11 +87,37 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
            ,'vel': np.asarray(re_x) ,'raw_vel': np.asarray(v)
            ,'spin': np.asarray(re_s) ,'raw_spin': np.asarray(s)
            ,'orient': np.asarray(re_o)}
+    data['step_num'], data['part_num'], data['dim'] = data['pos'].shape
 
+    data['cell_translates'] = get_cell_translates(part_params, wall_params, data)
+    
     return part_params, wall_params, data
 
 
-translates = np.array([[0.0,0.0]])
+def get_cell_translates(part_params, wall_params, data):
+#     wall_maxes = []
+#     wall_mins = []
+#     for w in wall_params:
+#         X = np.asarray(w['mesh'])
+#         X = np.rollaxis(X,-1,0)
+#         wall_maxes.append([np.max(m) for m in X])
+#         wall_mins.append([np.min(m) for m in X])
+#     wall_max = np.max(wall_maxes, axis=0)
+#     wall_min = np.min(wall_mins, axis=0)
+#     cs = wall_max - wall_min
+#     cell_size = cs / 2
+#     assert np.allclose(cell_size, wall_max, rtol=1e-3); "Cell does not appear to be symmetric.  Animation depends on symmetry."
+
+    cs = np.asarray(part_params['cell_size']) * 2
+    m = (data['pos'].min(axis=0).min(axis=0) / cs).round()
+    M = (data['pos'].max(axis=0).max(axis=0) / cs).round()
+    z = [np.arange(m[d], M[d]+1) * cs[d] for d in range(data['dim'])]
+    translates = it.product(*z)
+    return [np.asarray(t) for t in translates]
+#     return tuple(translates)
+
+
+
 
 def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
     t = data['t']
@@ -96,28 +125,31 @@ def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
     o = data['orient']
     mesh = np.asarray(part_params['mesh'])
     clr = part_params['clr']
-#     print(clr.shape)
-    
-    frame_num, part_num, dim = x.shape
-    
+
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
-    for trans in translates:
-        for w in wall_params:
-            ax.plot(*((w['mesh']+trans).T), color='black')
+    ax.grid(False)
+    fc = ax.get_facecolor()
+    for w in wall_params:
+        c = w['clr']
+        if c == 'clear':
+            pass
+        else:
+            for trans in data['cell_translates']:
+                ax.plot(*((w['mesh']+trans).T), color=c,  linewidth=1.0)
 
-    time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+    time_text = ax.text(0.02, 0.98, '', transform=ax.transAxes)
     bdy = []
     trail = []
-    for p in range(part_num):
-        bdy.append(ax.plot([],[], color=clr[p])[0])        
+    for p in range(data['part_num']):
+        bdy.append(ax.plot([],[], color=clr[p], linewidth=1.0)[0])        
         if show_trails:
             trail.append(ax.plot([],[], color=clr[p])[0])
         
 
     def init():
         time_text.set_text('')
-        for p in range(part_num):
+        for p in range(data['part_num']):
             bdy[p].set_data([], [])
             if show_trails:
                 trail[p].set_data([], [])
@@ -125,7 +157,7 @@ def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
 
     def update(s):
         time_text.set_text(f"step {s}, time {t[s]:.2f}")
-        for p in range(part_num):
+        for p in range(data['part_num']):
             bdy[p].set_data(*((mesh[p].dot(o[s,p].T) + x[s,p]).T))
             if show_trails:
                 trail[p].set_data(*(x[:s+1,p].T))
