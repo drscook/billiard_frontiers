@@ -30,22 +30,24 @@ def rectangular_channel(length=10, width=10):
 
 
 def box(cell_size):
-    dim = len(cell_size)
+    cell_size = np.asarray(cell_size, dtype=np_dtype)
     Tangents = np.diag(cell_size)
     walls = []
     for d, L in enumerate(cell_size):
         for s in [-1,1]:
-            v = np.zeros(dim, dtype=np_dtype)
-            v[d] = s*L
-            walls.append(FlatWall(dim=dim, base_point=v.copy(), normal=-v.copy()
+            base_point = 0.0 * cell_size
+            base_point[d] = s*L
+            walls.append(FlatWall(base_point=base_point.copy(), normal=-base_point.copy()
                                    ,tangents = np.delete(Tangents,d,0)))
     return walls
 
-def sinai(cell_size, scatter_radius):    
+def sinai(cell_size, scatter_radius):
+    cell_size = np.asarray(cell_size, dtype=np_dtype)
     if np.any(scatter_radius > cell_size):
-        raise Exception('scatterer largers than box')
+        raise Exception('scatterer larger than box')
     walls = box(cell_size)
-    walls.append(SphereWall(base_point=np.zeros(dim), radius=scatter_radius, side='outside'))
+    base_point = 0.0 * walls[0].base_point
+    walls.append(SphereWall(base_point=base_point, radius=scatter_radius, side='outside'))
     return walls
     
 def lorentz_rectangle(cell_size, scatter_radius):

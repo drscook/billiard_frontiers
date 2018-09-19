@@ -1,8 +1,8 @@
 # master wall class; subclass for each wall shape
 class Wall():
-    def __init__(self, dim, base_point, side='outside'):
-        self.dim = dim
+    def __init__(self, base_point, side='outside'):
         self.base_point = np.asarray(base_point, dtype=np_dtype)
+        self.dim = len(base_point)
         self.temp = 1.0
         self.pw_collision_law = PW_SpecularLaw()
         self.side = side
@@ -14,7 +14,7 @@ class Wall():
             raise Exception('Invalid side - must be inside or outside')
         self.pw_gap_m = self.sign
         self.pw_gap_b = 0.0
-        self.data = np.full([3, dim], np.inf, dtype=np_dtype)
+        self.data = np.full([3, self.dim], np.inf, dtype=np_dtype)
         self.data[1,:] = self.base_point.copy()
         self.record_params = ['dim', 'base_point', 'temp', 'side', 'name', 'mesh']
     
@@ -51,8 +51,8 @@ class Wall():
         
         
 class FlatWall(Wall):
-    def __init__(self, dim, base_point, normal, tangents):
-        super().__init__(dim, base_point)
+    def __init__(self, base_point, normal, tangents):
+        super().__init__(base_point)
         self.name = 'flat'
         self.normal_static = make_unit(normal)
         self.tangents = np.asarray(tangents, dtype=np_dtype)
@@ -89,8 +89,8 @@ class FlatWall(Wall):
         
         
 class SphereWall(Wall):
-    def __init__(self, dim, base_point, radius, side='outside'):
-        super().__init__(dim, base_point, side)
+    def __init__(self, base_point, radius, side='outside'):
+        super().__init__(base_point, side)
         self.name = 'sphere'
         self.radius = radius
         self.pw_gap_b = radius

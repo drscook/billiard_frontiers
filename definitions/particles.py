@@ -1,6 +1,6 @@
 class Particles():
-    def __init__(self, dim=dim, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp, pp_collision_law=PP_SpecularLaw):
-        self.dim = dim
+    def __init__(self, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp, pp_collision_law=PP_SpecularLaw):
+        self.dim = walls[0].dim
         self.num = num
         self.mass = np.full(self.num, mass, dtype=np_dtype)        
         self.radius = np.full(shape=self.num, fill_value=radius, dtype=np_dtype)
@@ -95,7 +95,7 @@ class Particles():
 
     def rand_vel(self, p):
 #         print('randomizing vel {}'.format(p))
-        self.vel[p] = rng.normal(0.0, self.sigma_vel[p], size=dim)
+        self.vel[p] = rng.normal(0.0, self.sigma_vel[p], size=self.dim)
     
     def rand_spin(self, p):
         v = [rng.normal(0.0, self.sigma_spin[p]) for d in range(self.dim_spin)]
