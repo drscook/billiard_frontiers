@@ -74,7 +74,12 @@ def setup_ffmpeg():
     pkg = 'ffmpeg'
 
     def test():
-        is_working = shutil.which('ffmpeg') is not None
+        path = shutil.which('ffmpeg')
+        if path is None:
+            is_working = False
+        else:
+            is_working = True
+            plt.rcParams['animation.ffmpeg_path'] = path
         return is_working, None 
 
     def install_none():
