@@ -28,16 +28,16 @@ class Wall():
         d = {param:f(getattr(self, param)) for param in self.record_params}
         d['pw_collision_law'] = self.pw_collision_law.name            
         return d
-    
-    @staticmethod
-    def get_mesh():
-        raise Exception('You should implement the method get_mesh() in a subclass.')
 
     def get_pw_gap(self):
         return self.get_pw_col_coefs(gap_only=True)
     
     def resolve_pw_collision(self, part, walls, p):
         self.pw_collision_law.resolve_collision(part=part, walls=walls, p=p, w=self.idx)
+    
+    @staticmethod
+    def get_mesh():
+        raise Exception('You should implement the method get_mesh() in a subclass.')
 
     @staticmethod
     def normal(pos):
@@ -74,8 +74,6 @@ class FlatWall(Wall):
             return c0
         dv = part.vel
         c1 = dv.dot(nu)
-#         c2 = np.zeros(c0.shape, dtype=np_dtype)
-#         self.pw_col_coefs = np.array([c2, c1, c0]).T
         self.pw_col_coefs = np.array([c1, c0]).T
         return self.pw_col_coefs
     
@@ -120,7 +118,10 @@ class SphereWall(Wall):
         
         
         
-        
+##################################################################
+### Not Recently Tested - may be out of date ###
+##################################################################
+      
         
 class CylinderWall(Wall):
     def __init__(self, dim, base_point, radius, cylinder_axis, radial_direction, angle=2*np.pi, side='inside'):

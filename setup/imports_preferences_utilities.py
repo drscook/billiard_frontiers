@@ -32,6 +32,10 @@ except:
     
 ##################################################################
 ### Display Preferences ###
+### Everything in this section is optional and can be turned off
+### if it causes errors.  It is just trying to print arrays
+### with nice rounding and other options.  But it has not been
+### thoroughly tested.
 ##################################################################
 
 plt.style.use("fivethirtyeight")

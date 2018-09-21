@@ -1,11 +1,14 @@
 class Particles():
-    def __init__(self, num=part_num, mass=part_mass, radius=part_radius, gamma=part_gamma, temp=part_temp, pp_collision_law=PP_SpecularLaw):
+    def __init__(self, cell_size, num=1, mass=1.0, radius=1.0, gamma='uniform', temp=1.0, pp_collision_law=PP_SpecularLaw, force=None):
         self.dim = walls[0].dim
         self.num = num
         self.mass = np.full(self.num, mass, dtype=np_dtype)        
         self.radius = np.full(shape=self.num, fill_value=radius, dtype=np_dtype)
         self.temp = np.full(self.num, temp, dtype=np_dtype)
         self.pp_collision_law = pp_collision_law()
+        self.cell_size = np.asarray(cell_size, dtype = np_dtype)
+        self.force = force   # Currently, force only works for cylinders and must be axial.  We plan to generalize this in the future.
+
         
         g = np.sqrt(2/(2+self.dim))   # uniform mass distribution
         if gamma == 'shell':
@@ -16,22 +19,22 @@ class Particles():
             try:
                 if (gamma >= 0) & (gamma <= np.sqrt(2/self.dim)):
                     g = gamma
+                    gamma = 'other'
             except:
                 pass
+        self.mass_dist = gamma
         self.gamma = np.full(self.num, g, dtype=np_dtype)
         
         self.pos = np.full([self.num, self.dim], np.inf, dtype=np_dtype)
-        self.pos_loc = self.pos.copy()
         self.vel = np.full([self.num, self.dim], np.inf, dtype=np_dtype)
         self.spin = np.full([self.num, self.dim, self.dim], np.inf, dtype=np_dtype)
 
         self.t = 0.0
         self.col = {}
         
-        self.record_params = ['mesh', 'dim', 'num', 'mass', 'radius', 'temp', 'gamma', 'mom_inert'
-                            , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr', 'cell_size']
+        self.record_params = ['mesh', 'dim', 'num', 'mass', 'radius', 'temp', 'mass_dist', 'gamma', 'mom_inert'
+                            , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr', 'cell_size', 'force']
         self.record_vars = ['t', 'pos', 'vel', 'spin']
-
 
 
     def get_mesh(self):
@@ -48,6 +51,7 @@ class Particles():
         cm = plt.cm.gist_rainbow
         idx = np.linspace(0, cm.N-1 , self.num).round().astype(int)
         self.clr = [cm(i) for i in idx]
+
         
     def get_pp_col_coefs(self, gap_only=False):
         dx = cross_subtract(self.pos)
@@ -61,13 +65,16 @@ class Particles():
         self.pp_col_coefs = np.array([c2, c1, c0]).T
         return self.pp_col_coefs
 
+
     def get_pp_gap(self):
         self.pp_gap = self.get_pp_col_coefs(gap_only=True)
         return self.pp_gap
 
+
     def get_pw_gap(self):
         self.pw_gap = np.array([w.get_pw_gap() for w in walls]).T
         return self.pw_gap
+
 
     def check_pos(self):
         self.get_pw_gap()
@@ -80,29 +87,37 @@ class Particles():
         ok = not (pw_overlap or pp_overlap)
         return ok, not pp_overlap, not pw_overlap
 
+    
     def rand_pos(self, p):
 #         print('randomizing pos {}'.format(p))
         max_attempts = 1000
+        cs = 2 * self.cell_size
+        cell_idx = (self.pos[p] / cs).round()
+        cell_idx[np.isinf(cell_idx)] = 0
+        cell_offset = cell_idx * cs
         for k in range(max_attempts):
             for d in range(self.dim):
-                self.pos[p,d] = rng.uniform(-cell_size[d], cell_size[d])
-            self.pos_loc[p] = self.pos[p].copy()
+                self.pos_loc[p,d] = rng.uniform(-self.cell_size[d], self.cell_size[d])
+            self.pos[p] = self.pos_loc[p] + cell_offset
             if self.check_pos()[0] == True:
 #                 print('Placed particle {}'.format(p))
                 return 
-        print(self.check_pos())
         raise Exception('Could not place particle {}'.format(p))
+
 
     def rand_vel(self, p):
 #         print('randomizing vel {}'.format(p))
         self.vel[p] = rng.normal(0.0, self.sigma_vel[p], size=self.dim)
-    
+
+
     def rand_spin(self, p):
         v = [rng.normal(0.0, self.sigma_spin[p]) for d in range(self.dim_spin)]
         self.spin[p] = spin_mat_from_vec(v)
-           
+
+
     def resolve_pp_collision(self, p1, p2):
         self.pp_collision_law.resolve_collision(self, p1, p2)
+
 
     def get_KE(self):
         self.KE_lin = self.mass * contract(self.vel**2) / 2
@@ -110,21 +125,23 @@ class Particles():
         self.KE_tot = self.KE_lin + self.KE_ang
         return np.sum(self.KE_tot)
 
+
     def check_angular(self):
-#         o_det = np.abs(np.linalg.det(self.orient))-1
-#         orient_check = np.abs(o_det) < thresh
-        skew = self.spin + np.swapaxes(self.spin, -2, -1)
-        spin_check = contract(skew*skew) < thresh
-        return np.all(spin_check) #and np.all(orient_check)
-    
+        spin_tranpose = np.swapaxes(self.spin, -2, -1) # transposes spin matrix of each particle
+        skew = self.spin + spin_tranpose 
+        spin_check = contract(skew**2) < thresh
+        return np.all(spin_check)
+
+
     def check(self):
         if self.check_pos()[0] == False:
             raise Exception('A particle escaped')
-#         if abs(1-self.KE_init/self.get_KE()) > rel_tol:
-#             raise Exception(' KE not conserved')
         if self.check_angular() == False:
-            raise Exception('A particle has invalid orintation or spin matrix')
+            raise Exception('A particle has an invalid spin matrix')
         return True
+
+    
+    ### Code below handles file i/o
     
     def get_params(self):
         def f(x):
@@ -172,7 +189,6 @@ class Particles():
                                              ,filters=table_filters
                                              ,chunkshape=z.shape
                                              ,expectedrows=max_steps)
-#                 tbl.append(z)
                 setattr(self, f"{v}_storage", tbl)                
     
 

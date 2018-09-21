@@ -32,11 +32,14 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
         s = np.asarray(data_file.root['spin'])
         t = np.asarray(data_file.root['t'])
 
+    def remove_short(x):
+        median = np.percentile(x, 50)
+        short_step = x < (median / 10000)
+        return x[~short_step]
+    
     dts = np.diff(t)
-    median = np.percentile(dts, 50)
-    short_step = dts < (median / 10000)
     for rank in np.linspace(100,0,50):
-        nominal_frame_length = np.percentile(dts[~short_step], rank)
+        nominal_frame_length = np.percentile(remove_short(dts), rank)
         
         frames_per_step = np.round(dts / nominal_frame_length).astype(int) # Divide each step into pieces of length as close to nominal_frame_length as possible
         frames_per_step[frames_per_step<1] = 1
@@ -52,7 +55,7 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
                 ddts = ddts[:M]
                 print(f"rank cutoff = {rank:.0f} -> frame_num = {frame_num} > {frame_max}.  Cutting movie short to satify frame_max.  Consider increasing anim_time or distortion_max.")
         
-        distortion = ddts.std() / ddts.mean()
+        distortion = remove_short(ddts).std() / remove_short(ddts).mean()
         mes = f"rank cutoff = {rank:.0f} -> distortion = {ddts.std():.2f} / {ddts.mean():.2f} = {distortion:.2f}"
         if distortion < distortion_max:
 #             print(f"{mes} < {distortion_max:.2f} -> that will work!!")
@@ -82,10 +85,10 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
             B = np.einsum('pde,pef->pdf', re_o[-1], do)  # more efficient version of calculation above
             re_o.append(B)
     
-    data = {'t': np.asarray(re_t), 'raw_t': np.asarray(t)
-           ,'pos': np.asarray(re_x) ,'raw_pos': np.asarray(x)
-           ,'vel': np.asarray(re_x) ,'raw_vel': np.asarray(v)
-           ,'spin': np.asarray(re_s) ,'raw_spin': np.asarray(s)
+    data = {'t': np.asarray(re_t), 't_raw': np.asarray(t)
+           ,'pos': np.asarray(re_x) ,'pos_raw': np.asarray(x)
+           ,'vel': np.asarray(re_x) ,'vel_raw': np.asarray(v)
+           ,'spin': np.asarray(re_s) ,'spin_raw': np.asarray(s)
            ,'orient': np.asarray(re_o)}
     data['step_num'], data['part_num'], data['dim'] = data['pos'].shape
 
@@ -156,7 +159,7 @@ def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
         return bdy + trail
 
     def update(s):
-        time_text.set_text(f"step {s}, time {t[s]:.2f}")
+        time_text.set_text(f"time {t[s]:.2f}")
         for p in range(data['part_num']):
             bdy[p].set_data(*((mesh[p].dot(o[s,p].T) + x[s,p]).T))
             if show_trails:

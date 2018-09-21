@@ -99,7 +99,8 @@ def setup_ffmpeg():
     
     
     
-    
+### This code ties the temporary instance created by colab to your personal google drive. 
+### This allows you to easily save results.
 # def setup_google_drive():
 #     try:    
 #         os.chdir(path)

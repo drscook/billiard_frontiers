@@ -14,19 +14,18 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
     part.record_ptr = 0
     part.record_init()
     part.record()
-
     
     for step in range(1,max_steps):
         next_state(part, walls)
         part.record()
         
+        if mode == 'parallel':
+            update_gpu(part)
+        
         if part.record_ptr == 0:
             elapsed = timer() - start
             print(f"mode = {mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
 
-        if mode == 'parallel':
-            update_gpu(part)
-#     part.clean_up()
     part.data_file.close()
 
     
@@ -37,9 +36,10 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
 def initialize(part, walls):
     if np.all([w.dim == part.dim for w in walls]) == False:
         raise Exception('Not all walls and part dimensions agree')
+        
     if np.all((part.gamma >= 0) & (part.gamma <= np.sqrt(2/part.dim))) == False:
         raise Exception('illegal mass distribution parameter {}'.format(gamma))
-
+        
     part.pw_gap_min = []
     for (i, w) in enumerate(walls):
         w.idx = i
@@ -54,24 +54,24 @@ def initialize(part, walls):
     part.mom_inert = part.mass * (part.gamma * part.radius)**2
     part.sigma_vel = np.sqrt(BOLTZ * part.temp / part.mass)
     part.sigma_spin = np.sqrt(BOLTZ * part.temp / part.mom_inert)
-    part.pos_loc = part.pos.copy()
 
+    part.pos_loc = part.pos.copy()
     for p in range(part.num):
         if np.any(np.isinf(part.pos[p])):
             part.rand_pos(p)
+            
         if np.any(np.isinf(part.vel[p])):
             part.rand_vel(p)
+            
         if np.any(np.isinf(part.spin[p])):
             part.spin[p,:,:] = 0.0
 #             part.rand_spin(p)
-    part.pos_loc = part.pos.copy()
+
     
-    try:
-        assert(same_initial_speeds == True)
+    
+    if same_initial_speeds:
         speed = np.linalg.norm(part.vel[0])
         part.vel = make_unit(part.vel) * speed
-    except:
-        pass
 
     part.pp_mask = np.full([part.num, part.num], False, dtype=bool)
     part.pw_mask = np.full([part.num, len(walls)], False, dtype=bool)
@@ -92,16 +92,16 @@ def next_state(part, walls, force=0):
     if np.isinf(part.dt):
         raise Exception("No future collisions detected")
         
-    if (force != 0):
-        part.pos[:,2] += force * part.dt**2 /(2 * part.mass) + part.vel[:,2] * part.dt
-        part.pos_loc[:,2] += force * part.dt**2 /(2 * part.mass) + part.vel[:,2] * part.dt
-        
-        part.pos[:,0:2] += part.vel[:,0:2] * part.dt
-        part.pos_loc[:,0:2] += part.vel[:,0:2] * part.dt
-        part.vel[:,2] += force/part.mass * part.dt
-    else:
+    if part.force is None:
         part.pos += part.vel * part.dt
         part.pos_loc += part.vel * part.dt
+    else:  # Currently, force only works for cylinders and must be axial.  We plan to generalize this in the future.
+        part.pos[:,-1] += force * part.dt**2 /(2 * part.mass) + part.vel[:,-1] * part.dt
+        part.pos_loc[:,-1] += force * part.dt**2 /(2 * part.mass) + part.vel[:,-1] * part.dt
+        
+        part.pos[:,0:-1] += part.vel[:,0:-1] * part.dt
+        part.pos_loc[:,0:-1] += part.vel[:,0:-1] * part.dt
+        part.vel[:,-1] += force/part.mass * part.dt
 
     part.t += part.dt
         
@@ -110,7 +110,7 @@ def next_state(part, walls, force=0):
     pw_tot = np.sum(pw_events)
     
     pp_events = (part.pp_dt - part.dt) < thresh
-    pp_counts = pp_events#np.sum(pp_events, axis=-1)
+    pp_counts = pp_events
     pp_tot = np.sum(pp_events)
     
     if (pw_tot == 0) & (pp_tot == 2):
@@ -128,18 +128,10 @@ def next_state(part, walls, force=0):
     else:
         P = np.nonzero(pp_counts + pw_counts)[0]
         print('COMPLEX COLLISION DETECTED. Re-randomizing positions of particles {}'.format(P))
-        part.pos_loc[P,:] = np.inf
-        cs = 2 * cell_size
+        part.record()  # record state before and after re-randomizing position to animations look right
         for p in P:
-#             print('before')
-#             print(part.pos[p])
-            cell = (part.pos[p] / cs).round()
             part.rand_pos(p)
-            part.pos[p] = part.pos[p] + cell * cs
-#             print('after')
-#             print(part.pos[p])
-
-#     part.get_KE()
+    part.check()
 
 
 def get_col_time(part, walls):
