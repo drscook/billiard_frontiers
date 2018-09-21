@@ -98,27 +98,12 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
 
 
 def get_cell_translates(part_params, wall_params, data):
-#     wall_maxes = []
-#     wall_mins = []
-#     for w in wall_params:
-#         X = np.asarray(w['mesh'])
-#         X = np.rollaxis(X,-1,0)
-#         wall_maxes.append([np.max(m) for m in X])
-#         wall_mins.append([np.min(m) for m in X])
-#     wall_max = np.max(wall_maxes, axis=0)
-#     wall_min = np.min(wall_mins, axis=0)
-#     cs = wall_max - wall_min
-#     cell_size = cs / 2
-#     assert np.allclose(cell_size, wall_max, rtol=1e-3); "Cell does not appear to be symmetric.  Animation depends on symmetry."
-
     cs = np.asarray(part_params['cell_size']) * 2
     m = (data['pos'].min(axis=0).min(axis=0) / cs).round()
     M = (data['pos'].max(axis=0).max(axis=0) / cs).round()
     z = [np.arange(m[d], M[d]+1) * cs[d] for d in range(data['dim'])]
     translates = it.product(*z)
     return [np.asarray(t) for t in translates]
-#     return tuple(translates)
-
 
 
 

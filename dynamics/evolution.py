@@ -29,9 +29,6 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
     part.data_file.close()
 
     
-
-
-
     
 def initialize(part, walls):
     if np.all([w.dim == part.dim for w in walls]) == False:
