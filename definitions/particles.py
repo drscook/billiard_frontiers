@@ -1,5 +1,5 @@
 class Particles():
-    def __init__(self, cell_size, num=1, mass=1.0, radius=1.0, gamma='uniform', temp=1.0, pp_collision_law=PP_SpecularLaw, force=None):
+    def __init__(self, cell_size, num=1, mass=1.0, radius=1.0, gamma='uniform', temp=1.0, pp_collision_law=PP_SpecularLaw, force=None, mode='serial'):
         self.dim = walls[0].dim
         self.num = num
         self.mass = np.full(self.num, mass, dtype=np_dtype)        
@@ -7,7 +7,9 @@ class Particles():
         self.temp = np.full(self.num, temp, dtype=np_dtype)
         self.pp_collision_law = pp_collision_law()
         self.cell_size = np.asarray(cell_size, dtype = np_dtype)
+        self.mode = mode
         self.force = force   # Currently, force only works for cylinders and must be axial.  We plan to generalize this in the future.
+        
 
         
         g = np.sqrt(2/(2+self.dim))   # uniform mass distribution
@@ -33,7 +35,8 @@ class Particles():
         self.col = {}
         
         self.record_params = ['mesh', 'dim', 'num', 'mass', 'radius', 'temp', 'mass_dist', 'gamma', 'mom_inert'
-                            , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr', 'cell_size', 'force']
+                            , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr', 'cell_size', 'force'
+                            , 'mode']
         self.record_vars = ['t', 'pos', 'vel', 'spin']
 
 
@@ -203,8 +206,7 @@ class Particles():
                 tbl = getattr(self, f"{v}_storage")
                 tbl.append(hist)
 
-        if period_complete:
-            print('Writing to file')
+        if period_complete:            
             self.record_ptr = 0
         else:
             self.record_ptr += 1

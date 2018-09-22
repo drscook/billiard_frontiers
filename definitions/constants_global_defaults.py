@@ -12,6 +12,5 @@ table_filters = tables.Filters(complevel=1, complib='blosc:lz4')
 ##################################################################
 
 max_steps = 100
-mode = 'serial'
 check_gpu_cpu = False
 same_initial_speeds = True

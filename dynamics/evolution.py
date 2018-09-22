@@ -4,8 +4,6 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
     with np.errstate(invalid='ignore'):
         initialize(part, walls)
 
-    if mode == 'parallel':
-        initialize_gpu(part)
     
     assert (record_period >= 1), 'record_period must be >= 1'
     part.record_period = min(record_period, max_steps)
@@ -17,25 +15,39 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
     
     for step in range(1,max_steps):
         next_state(part, walls)
-        part.record()
         
-        if mode == 'parallel':
+        if part.mode == 'parallel':
             update_gpu(part)
         
         if part.record_ptr == 0:
             elapsed = timer() - start
-            print(f"mode = {mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
+            print(f"mode = {part.mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
+        part.record()
 
     part.data_file.close()
 
     
-    
+
+def get_pw_dt_cpu(part, walls):
+    part.pw_dt_cpu = np.array([solver(w.get_pw_col_coefs(), part.pw_mask[:, w.idx])[0] for w in walls]).T
+    return part.pw_dt_cpu
+
+
+def get_pp_dt_cpu(part, walls):
+    part.pp_dt_cpu_full = solver(part.get_pp_col_coefs(), part.pp_mask)[0]
+    part.pp_dt_cpu = np.min(part.pp_dt_cpu_full, axis=-1)
+    return part.pp_dt_cpu
+
+            
+            
+            
 def initialize(part, walls):
+    global get_dt
     if np.all([w.dim == part.dim for w in walls]) == False:
         raise Exception('Not all walls and part dimensions agree')
         
     if np.all((part.gamma >= 0) & (part.gamma <= np.sqrt(2/part.dim))) == False:
-        raise Exception('illegal mass distribution parameter {}'.format(gamma))
+        raise Exception(f"illegal mass distribution parameter {gamma}")
         
     part.pw_gap_min = []
     for (i, w) in enumerate(walls):
@@ -65,7 +77,6 @@ def initialize(part, walls):
 #             part.rand_spin(p)
 
     
-    
     if same_initial_speeds:
         speed = np.linalg.norm(part.vel[0])
         part.vel = make_unit(part.vel) * speed
@@ -78,11 +89,43 @@ def initialize(part, walls):
         w.get_mesh()
     part.KE_init = part.get_KE()
     part.check()
+
+    
+    part.pp_dt = np.array([np.inf])
+    part.pw_dt = np.array([np.inf])
+    if part.mode == 'serial':
+        def get_dt(part, walls):
+            part.pw_dt = get_pw_dt_cpu(part, walls)
+            if (part.num > 1) & (not isinstance(part.pp_collision_law, PP_IgnoreLaw)):
+                part.pp_dt = get_pp_dt_cpu(part, walls)
+
+    elif part.mode == 'parallel':
+        define_solver_gpu()
+        init_gpu(part, walls)
+        def get_dt(part, walls):
+            part.pw_dt = get_pw_dt_gpu(part, walls)
+            if check_gpu_cpu:
+                get_pw_dt_cpu(part, walls)
+                pw_check = np.allclose(part.pw_dt, part.pw_dt_cpu)
+                if not pw_check:
+                    raise Exception(f"cpu and gpu do not agree on pw_dt")
+
+            if (part.num > 1) & (not isinstance(part.pp_collision_law, PP_IgnoreLaw)):
+                part.pp_dt = get_pp_dt_gpu(part, walls)
+                if check_gpu_cpu:
+                    get_pp_dt_cpu(part, walls)
+                    pp_check = np.allclose(part.pp_dt, part.pp_dt_cpu)
+                    if not pp_check:
+                        raise Exception(f"cpu and gpu do not agree on pp_dt")
+
+    else:
+        raise Exception(f"illegal mode {part.mode}")   
+    
     
 
-
 def next_state(part, walls, force=0):
-    get_col_time(part, walls)
+    get_dt(part, walls)
+    part.dt = min(np.min(part.pw_dt), np.min(part.pp_dt))
     part.pw_mask[:] = False
     part.pp_mask[:] = False
 
@@ -129,77 +172,3 @@ def next_state(part, walls, force=0):
         for p in P:
             part.rand_pos(p)
     part.check()
-
-
-def get_col_time(part, walls):
-    get_pw_col_time(part)
-    part.dt = np.min(part.pw_dt)
-    if (part.num > 1) & (isinstance(part.pp_collision_law, PP_IgnoreLaw) == False):
-        get_pp_col_time(part)
-        part.dt = min(part.dt, np.min(part.pp_dt))
-    else:
-        part.pp_dt = np.array([np.inf])
-    return part.dt
-
-
-def get_pp_col_time(part):
-    if mode == 'parallel':
-        part.pp_dt = get_pp_col_time_gpu(part)
-        if check_gpu_cpu == True:
-            get_pp_col_time_cpu(part)
-            check = np.allclose(part.pp_dt_gpu, part.pp_dt_cpu)
-            if check == False:
-                print('CPU and GPU pp_col_times DISAGREE')
-                raise Exception()
-            else:
-                if print_if_agree == True:
-                    print('CPU and GPU pp_col_times agree')
-    else:
-        part.pp_dt = get_pp_col_time_cpu(part)
-    return part.pp_dt
-
-
-def get_pp_col_time_cpu(part):
-    part.pp_dt_block_cpu = solver(coefs = part.get_pp_col_coefs(), mask = part.pp_mask)[0]
-    part.pp_dt_cpu = np.min(part.pp_dt_block_cpu, axis=-1)
-    return part.pp_dt_cpu
-
-
-def get_pp_col_time_gpu(part):
-    get_pp_col_time_kernel[pp_grid_shape, pp_block_shape](part.pos_gpu, part.vel_gpu,
-        part.pp_mask_gpu, part.pp_gap_min_gpu, part.pp_dt_block_gpu)#, part.pp_col_coefs_gpu)
-    part.pp_dt_block_gpu.copy_to_host(part.pp_dt_block)
-    part.pp_dt_gpu = np.min(part.pp_dt_block, axis=-1)
-    return part.pp_dt_gpu
-    
-
-def get_pw_col_time(part):
-    if mode == 'parallel':
-        part.pw_dt = get_pw_col_time_gpu(part)
-        if check_gpu_cpu == True:
-            get_pw_col_time_cpu(part)
-            check = np.allclose(part.pw_dt_gpu, part.pw_dt_cpu)
-            if check == False:
-                print('CPU and GPU pw_col_times DISAGREE')
-                raise Exception()
-            else:
-                if print_if_agree == True:
-                    print('CPU and GPU pw_col_times agree')
-    else:
-        part.pw_dt = get_pw_col_time_cpu(part)
-    return part.pw_dt
-
-
-def get_pw_col_time_cpu(part):
-    part.pw_dt_cpu = np.array([solver(wall.get_pw_col_coefs(), part.pw_mask[:,wall.idx])[0]
-                               for wall in walls]).T
-    return part.pw_dt_cpu
-
-
-def get_pw_col_time_gpu(part):
-    get_pw_col_time_kernel[pw_grid_shape, pw_block_shape](part.pos_loc_gpu,
-        part.vel_gpu, part.pw_mask_gpu, part.pw_gap_min_gpu, part.walls_data_gpu,
-        part.pw_dt_block_gpu)#, part.pw_col_coefs_smt)
-    part.pw_dt_block_gpu.copy_to_host(part.pw_dt_block)
-    part.pw_dt_gpu = part.pw_dt_block
-    return part.pw_dt_gpu

@@ -4,8 +4,6 @@ import base64
 from IPython.display import HTML
 
 
-
-
 def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, distortion_max=0.3):
     import scipy.linalg
     if date is None:
@@ -38,13 +36,15 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
         return x[~short_step]
     
     dts = np.diff(t)
+    cutoff = False
     for rank in np.linspace(100,0,50):
         nominal_frame_length = np.percentile(remove_short(dts), rank)
         
-        frames_per_step = np.round(dts / nominal_frame_length).astype(int) # Divide each step into pieces of length as close to nominal_frame_length as possible
-        frames_per_step[frames_per_step<1] = 1
-        k = int(max(round(frame_min / np.sum(frames_per_step)), 1))  # Divide each step into more pieces to achieve frame_min; ensures desired frame_rate_min
+        frames_per_step = dts / nominal_frame_length # Divide each step into pieces of length as close to nominal_frame_length as possible
+        k = frame_min / np.sum(frames_per_step)  # Divide each step into more pieces to achieve frames_min; ensures desired frame_rate_min
         frames_per_step *= k
+        frames_per_step = np.round(frames_per_step).astype(int)
+        frames_per_step[frames_per_step<1] = 1
         ddts = dts / frames_per_step  # Compute frame length within each step
         
         frame_num = np.sum(frames_per_step)
@@ -53,8 +53,9 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
                 C = np.cumsum(frames_per_step)
                 M = np.argmax(C > frame_max)
                 ddts = ddts[:M]
-                print(f"rank cutoff = {rank:.0f} -> frame_num = {frame_num} > {frame_max}.  Cutting movie short to satify frame_max.  Consider increasing anim_time or distortion_max.")
-        
+                cutoff = True
+                
+                
         distortion = remove_short(ddts).std() / remove_short(ddts).mean()
         mes = f"rank cutoff = {rank:.0f} -> distortion = {ddts.std():.2f} / {ddts.mean():.2f} = {distortion:.2f}"
         if distortion < distortion_max:
@@ -62,6 +63,9 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
             break
 #         else:
 #             print(f"{mes} >= {distortion_max:.2f} -> use a tighter rank cutoff")
+
+    if cutoff:
+        print(f"rank cutoff = {rank:.0f} -> frame_num = {frame_num} > {frame_max}.  Cutting movie short to satify frame_max.  Consider increasing anim_time or distortion_max.")
 
 
     re_t, re_x, re_v, re_s = [t[0]], [x[0]], [v[0]], [s[0]]
@@ -108,6 +112,8 @@ def get_cell_translates(part_params, wall_params, data):
 
 
 def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
+    setup_ffmpeg()
+    
     t = data['t']
     x = data['pos']
     o = data['orient']
