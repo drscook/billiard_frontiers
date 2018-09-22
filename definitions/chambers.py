@@ -18,7 +18,7 @@ def box(cell_size):
 def sinai(cell_size, scatter_radius):
     cell_size = np.asarray(cell_size, dtype=np_dtype)
     if np.any(scatter_radius > cell_size):
-        raise Exception('scatterer larger than box')
+        raise Exception(f"scatter radius {scatter_radius} larger than cell size {cell_size}")
     walls = box(cell_size)
     base_point = 0.0 * walls[0].base_point
     walls.append(SphereWall(base_point=base_point, radius=scatter_radius, side='outside'))
@@ -38,23 +38,50 @@ def lorentz_rectangle(cell_size, scatter_radius):
         wall.clr = 'clear'
     return walls
 
+
 def lorentz_hexagonal(scatter_radius, part_radius, horizon_factor):
-    # horizon_factor < 1 for finite horizon, horizon_factor > 1 for infinite horizon
+    """
+    trapped/overlap: hf < 0; finite horizon: 0 <= hf < 1; infinite horizon: 1 <= hf < inf
+    """    
+    if horizon_factor < 0:
+        raise Exception(f"horizon factor must be >= 0, but given {horizon_factor}")
     R = scatter_radius + part_radius
-    gap_crit = (2/np.sqrt(3) - 1) * R
-    gap = horizon_factor * gap_crit
-    x0 = R + gap
-    y0 = np.sqrt(3) * x0
-    cell_size = np.array([x0,y0])
-    print('Diameter / spacing = {:.3f} / {:.3f} = {:.3f}'.format(2*R, 2*x0, (2*R)/(2*x0)))
+    b = np.sqrt(3) / 2
+    x_crit = R / b
+    
+    # The code below could be confusing because it involves 3 variables essentially redundant variables.
+    # The most important is k.  The key definition is x = x_crit * k.
+    # However, the ranges for k for trapped/finite horizon/infinite horizon are a bit tricky to recall.
+    # So we provide a convenient rescaled version called horizon_factor.
+    # We also compute a physically natural variable called linear density, mostly for output.
+    # These are all essentially redundant, but serve different purposes.
+    # They are defined below with associated scales.  Recall that b = sqrt(3)/2
+    # horizon factor = (k - b) / (1 - b)
+    # k = horizon factor * (1 - b) + b
+    # linear density ld = x / R
+    # trapped/overlap: hf < 0; finite horizon: 0 <= hf < 1; infinite horizon: 1 <= hf < inf
+    # trapped/overlap: k  < b; finite horizon: b <= k  < 1; infinite horizon: 1 <= b  < inf
+    # trapped/overlap: ld > 1; finite horizon: b <= ld < 1; infinite horizon: 0 <= ld < b
+    
+    k = horizon_factor * (1 - b) + b
+    x = x_crit * k
+    y = 2 * x * b
+    cell_size = np.array([x,y])
+    
+    print(f"\nlinear density = effective radius / spacing = {R:.3f} / {x:.3f} = {(R / x):.3f}")
+    print(f"For context, here are horzon ranges in terms of linear density.")
+    print(f"infinite horizon: [0,{b:.3f}]; finite horizon: ({b:.3f},1]; trapped/overlap: (1, inf)\n")
+    print("Don't forget to pass part_radius to Particles.  Otherwise it will use the default.")
     
     walls = lorentz_rectangle(cell_size, scatter_radius)
-    walls.append(SphereWall(base_point=np.array([x0,y0]), radius=scatter_radius, side='outside'))
-    walls.append(SphereWall(base_point=np.array([-x0,y0]), radius=scatter_radius, side='outside'))
-    walls.append(SphereWall(base_point=np.array([-x0,-y0]), radius=scatter_radius, side='outside'))
-    walls.append(SphereWall(base_point=np.array([x0,-y0]), radius=scatter_radius, side='outside'))
-    print("Don't forget to pass part_radius to Particles.  Otherwise it will use its default.")
+    walls.append(SphereWall(base_point=np.array([x,y]), radius=scatter_radius, side='outside'))
+    walls.append(SphereWall(base_point=np.array([-x,y]), radius=scatter_radius, side='outside'))
+    walls.append(SphereWall(base_point=np.array([-x,-y]), radius=scatter_radius, side='outside'))
+    walls.append(SphereWall(base_point=np.array([x,-y]), radius=scatter_radius, side='outside'))
+
     return walls, cell_size
+
+
 
 
 

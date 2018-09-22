@@ -1,4 +1,5 @@
 def run_experiment(part, walls, record_period=1000, write_to_file=True):
+    print()
     start = timer()
     
     with np.errstate(invalid='ignore'):
@@ -13,7 +14,7 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
     part.record_init()
     part.record()
     
-    for step in range(1,max_steps):
+    for step in range(1,max_steps+1):
         next_state(part, walls)
         
         if part.mode == 'parallel':
@@ -24,6 +25,9 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
             print(f"mode = {part.mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
         part.record()
 
+
+    elapsed = timer() - start
+    print(f"mode = {part.mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
     part.data_file.close()
 
     
