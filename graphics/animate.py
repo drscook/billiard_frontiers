@@ -56,10 +56,12 @@ def read_and_interpolate(date=None, run=None, frame_min=10, frame_max=None, dist
                 cutoff = True
                 
                 
-        distortion = remove_short(ddts).std() / remove_short(ddts).mean()
-        mes = f"rank cutoff = {rank:.0f} -> distortion = {ddts.std():.2f} / {ddts.mean():.2f} = {distortion:.2f}"
+        std = remove_short(ddts).std()
+        mean = remove_short(ddts).mean()
+        distortion = std / mean
+        mes = f"rank cutoff = {rank:.0f} -> {distortion:.2f}"
         if distortion < distortion_max:
-#             print(f"{mes} < {distortion_max:.2f} -> that will work!!")
+            print(f"{mes} < {distortion_max:.2f} -> that will work!!")
             break
 #         else:
 #             print(f"{mes} >= {distortion_max:.2f} -> use a tighter rank cutoff")

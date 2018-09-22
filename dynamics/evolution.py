@@ -25,9 +25,6 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
             print(f"mode = {part.mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
         part.record()
 
-
-    elapsed = timer() - start
-    print(f"mode = {part.mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
     part.data_file.close()
 
     
