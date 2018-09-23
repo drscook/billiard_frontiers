@@ -3,7 +3,7 @@ import io
 import base64
 from IPython.display import HTML
 
-def find_data_file(date=None, run=None):
+def find_records(date=None, run=None):
     if date is None:
         date = str(datetime.date.today())
     date_path = root_path + date + '/'
@@ -22,12 +22,11 @@ def find_data_file(date=None, run=None):
         wall_params = json.load(wall_params_file)
 
     data_filename = run_path + 'data.hdf5'
-    return data_filename
+    return part_params, wall_params, data_filename
 
 
 def read_and_interpolate(data_filename, frame_min=None, distortion_max=None, compute_orient=False):
     import scipy.linalg
-    
     
     with tables.open_file(data_filename, mode='r') as data_file:
         x = np.asarray(data_file.root['pos'])
