@@ -3,6 +3,7 @@
 ##################################################################
 
 import os
+import psutil
 from copy import copy, deepcopy
 import math
 import itertools as it
@@ -103,7 +104,7 @@ def insert_totals(df):
 def time_format(x):
     h, m = np.divmod(x, 3600)
     m, s = np.divmod(m, 60)
-    return f"{int(h):02d} hr {int(m):02d} min {s:05.02f} sec"
+    return f"{int(h):02d}hr {int(m):02d}min {s:05.02f}sec"
 
 
 def time_stamp():

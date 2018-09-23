@@ -1,31 +1,36 @@
-def run_experiment(part, walls, record_period=1000, write_to_file=True):
+def run_experiment(part, walls, free_mem_to_use=0.5, write_to_file=True, report_period=None):
     print()
     start = timer()
     
     with np.errstate(invalid='ignore'):
         initialize(part, walls)
 
-    
-    assert (record_period >= 1), 'record_period must be >= 1'
-    part.record_period = min(record_period, max_steps)
+    assert ((free_mem_to_use > 0.0) & (free_mem_to_use < 1.0)), f"free_mem_to_use must btw 0 & 1; given {free_mem_to_use}"
+
     part.write_to_file = write_to_file
-    
     part.record_ptr = 0
-    part.record_init()
+    part.record_init(free_mem_to_use)
     part.record()
     
+    if report_period is None:
+        report_period = part.hist_length
+        
     print(f"Init complete.  Starting dynamics.")
-    for step in range(1,max_steps+1):
+    for step in range(1, part.max_steps+1):
         next_state(part, walls)
         part.check()
         
         if part.mode == 'parallel':
             update_gpu(part)
         
-        if part.record_ptr == 0:
-            elapsed = timer() - start
-            print(f"mode = {part.mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
         part.record()
+
+        if step % report_period == 0:
+            completed = step / part.max_steps
+            elapsed = timer() - start
+            predicted = elapsed / completed
+            
+            print(f"{part.mode} {part.num} particles, {completed*100:.0f}% complete, {time_format(elapsed)} elapsed, {time_format(predicted)} predicted")
 
     if part.write_to_file:
         part.data_file.close()

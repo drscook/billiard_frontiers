@@ -1,6 +1,7 @@
 class Particles():
-    def __init__(self, cell_size, num=1, mass=1.0, radius=1.0, gamma='uniform', temp=1.0, pp_collision_law=PP_SpecularLaw, force=None, mode='serial'):
+    def __init__(self, cell_size, num=1, max_steps=100, mass=1.0, radius=1.0, gamma='uniform', temp=1.0, pp_collision_law=PP_SpecularLaw, force=None, mode='serial'):
         self.dim = walls[0].dim
+        self.max_steps = max_steps
         self.num = num
         self.mass = np.full(self.num, mass, dtype=np_dtype)        
         self.radius = np.full(shape=self.num, fill_value=radius, dtype=np_dtype)
@@ -156,7 +157,7 @@ class Particles():
         d['pp_collision_law'] = self.pp_collision_law.name            
         return d
         
-    def record_init(self):
+    def record_init(self, free_mem_to_use):
         if self.write_to_file:
             date = str(datetime.date.today())            
             self.run_date = date
@@ -179,10 +180,23 @@ class Particles():
                 json.dump(d, wall_file)
             
             self.data_file = tables.open_file(self.data_filename, mode='w')
-            
+            print(f"I will write data to file {self.data_filename} at the period stated below.")
+
+        ## Compute record length to keep in memory = file write period ##
+        state_bytes = 0
         for v in self.record_vars:
             x = np.asarray(getattr(self, v)).astype(np_dtype)
-            chunk = np.repeat(x[np.newaxis], self.record_period, axis=0)
+            state_bytes += x.nbytes
+
+        free_mem = psutil.virtual_memory().free
+        avail_mem = free_mem * free_mem_to_use
+        L = int(np.floor(avail_mem / state_bytes))
+        self.hist_length = min(L, self.max_steps)
+        print(f"I will keep the most recent {self.hist_length} steps in memory.")
+    
+        for v in self.record_vars:
+            x = np.asarray(getattr(self, v)).astype(np_dtype)
+            chunk = np.repeat(x[np.newaxis], self.hist_length, axis=0)
             setattr(self, f"{v}_hist", chunk)
             if self.write_to_file:
                 tbl = self.data_file.create_earray(self.data_file.root, v
@@ -190,11 +204,11 @@ class Particles():
                                              ,shape=(0, *x.shape)
                                              ,filters=table_filters
                                              ,chunkshape=chunk.shape
-                                             ,expectedrows=max_steps)
+                                             ,expectedrows=self.max_steps)
     ## rec_dtype set in constants
 
     def record(self):
-        period_complete = (self.record_ptr+1 >= self.record_period)
+        period_complete = (self.record_ptr+1 >= self.hist_length)
         
         for v in self.record_vars:
             val = getattr(self, v)
