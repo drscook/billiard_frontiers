@@ -1,9 +1,9 @@
 def run_experiment(part, walls, free_mem_to_use=0.5, write_to_file=True, report_period=None):
-    print()
     start = timer()
     
     with np.errstate(invalid='ignore'):
         initialize(part, walls)
+        part.check()
 
     assert ((free_mem_to_use > 0.0) & (free_mem_to_use < 1.0)), f"free_mem_to_use must btw 0 & 1; given {free_mem_to_use}"
 
@@ -13,12 +13,13 @@ def run_experiment(part, walls, free_mem_to_use=0.5, write_to_file=True, report_
     part.record()
     
     if report_period is None:
-        report_period = part.hist_length
+        report_period = int(round(part.max_steps / 10))
+    report_period = min(report_period, max_steps)
         
     print(f"Init complete.  Starting dynamics.")
     for step in range(1, part.max_steps+1):
         next_state(part, walls)
-        part.check()
+#         part.check()
         
         if part.mode == 'parallel':
             update_gpu(part)
@@ -97,8 +98,6 @@ def initialize(part, walls):
     for w in walls:
         w.get_mesh()
     part.KE_init = part.get_KE()
-    part.check()
-
     
     part.pp_dt = np.array([np.inf])
     part.pw_dt = np.array([np.inf])
