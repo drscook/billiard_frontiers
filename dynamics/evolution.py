@@ -14,8 +14,10 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
     part.record_init()
     part.record()
     
+    print(f"Init complete.  Starting dynamics.")
     for step in range(1,max_steps+1):
         next_state(part, walls)
+        part.check()
         
         if part.mode == 'parallel':
             update_gpu(part)
@@ -25,7 +27,8 @@ def run_experiment(part, walls, record_period=1000, write_to_file=True):
             print(f"mode = {part.mode}, num_part = {part.num}, step = {step}, elapsed Time = {time_format(elapsed)}")
         part.record()
 
-    part.data_file.close()
+    if part.write_to_file:
+        part.data_file.close()
 
     
 
@@ -172,4 +175,3 @@ def next_state(part, walls, force=0):
         part.record()  # record state before and after re-randomizing position to animations look right
         for p in P:
             part.rand_pos(p)
-    part.check()

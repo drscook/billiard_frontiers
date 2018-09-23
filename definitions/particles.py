@@ -37,7 +37,7 @@ class Particles():
         self.record_params = ['mesh', 'dim', 'num', 'mass', 'radius', 'temp', 'mass_dist', 'gamma', 'mom_inert'
                             , 'run_path', 'data_filename', 'run_date', 'run_time', 'clr', 'cell_size', 'force'
                             , 'mode']
-        self.record_vars = ['t', 'pos', 'vel', 'spin']
+        self.record_vars = ['t', 'pos', 'spin']#, 'vel']
 
 
     def get_mesh(self):
@@ -164,36 +164,34 @@ class Particles():
 
             date_path = root_path + date + '/'
             M = get_last_file_in_dir(date_path)            
-            self.run_path = date_path + str(M+1) + '/'
-            os.makedirs(self.run_path, exist_ok=True)
-           
+            self.run_path = date_path + str(M+1) + '/'            
             self.data_filename = self.run_path + 'data.hdf5'
-            self.data_file = tables.open_file(self.data_filename, mode='w')
-            
             self.part_params_filename = self.run_path + 'part_params.json'
+            self.wall_params_filename = self.run_path + 'wall_params.json'
+            
+            os.makedirs(self.run_path, exist_ok=True)
             with open(self.part_params_filename, "w") as part_file:
                 d = self.get_params()
                 json.dump(d, part_file)
 
-            self.wall_params_filename = self.run_path + 'wall_params.json'
             with open(self.wall_params_filename, "w") as wall_file:
                 d = [w.get_params() for w in walls]
                 json.dump(d, wall_file)
             
+            self.data_file = tables.open_file(self.data_filename, mode='w')
+            
         for v in self.record_vars:
-            x = np.asarray(getattr(self, v))
-            z = np.zeros(shape=(self.record_period, *x.shape), dtype=x.dtype)
-            z[0] = x.copy()
-            setattr(self, f"{v}_hist", z)
+            x = np.asarray(getattr(self, v)).astype(np_dtype)
+            chunk = np.repeat(x[np.newaxis], self.record_period, axis=0)
+            setattr(self, f"{v}_hist", chunk)
             if self.write_to_file:
                 tbl = self.data_file.create_earray(self.data_file.root, v
-                                             ,tables.Atom.from_dtype(x.dtype)
-                                             ,shape=(0, *x.shape)                                   
+                                             ,tables.Atom.from_dtype(record_dtype(1).dtype)
+                                             ,shape=(0, *x.shape)
                                              ,filters=table_filters
-                                             ,chunkshape=z.shape
+                                             ,chunkshape=chunk.shape
                                              ,expectedrows=max_steps)
-                setattr(self, f"{v}_storage", tbl)                
-    
+    ## rec_dtype set in constants
 
     def record(self):
         period_complete = (self.record_ptr+1 >= self.record_period)
@@ -203,9 +201,8 @@ class Particles():
             hist = getattr(self, f"{v}_hist")
             hist[self.record_ptr] = val
             if self.write_to_file & period_complete:
-                tbl = getattr(self, f"{v}_storage")
-                tbl.append(hist)
-
+                self.data_file.root[v].append(hist.astype(record_dtype))
+                
         if period_complete:            
             self.record_ptr = 0
         else:
