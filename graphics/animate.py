@@ -11,7 +11,6 @@ def find_records(date=None, run=None):
     if run is None:
         run = get_last_file_in_dir(date_path)
     run_path = date_path + str(run) + '/'
-    os.chdir(run_path)
     
     part_params_filename = run_path + 'part_params.json'
     with open(part_params_filename, mode='r') as part_params_file:
@@ -22,7 +21,7 @@ def find_records(date=None, run=None):
         wall_params = json.load(wall_params_file)
 
     data_filename = run_path + 'data.hdf5'
-    return part_params, wall_params, data_filename
+    return part_params, wall_params, data_filename, run_path
 
 
 def read_and_interpolate(data_filename, frame_min=None, distortion_max=None, compute_orient=False):
