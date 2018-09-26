@@ -107,7 +107,6 @@ def get_cell_translates(pos, cell_size):
 
 
 def animate(part_params, wall_params, data, movie_time=20, frame_max=None, show_trails=True):
-#     setup_ffmpeg()
     assert hasattr(data, 'orient'), "Must run read_and_interpolate with compute_orient=True"
         
 
