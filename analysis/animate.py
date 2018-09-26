@@ -3,22 +3,28 @@ import io
 import base64
 from IPython.display import HTML
 
-def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=None, compute_orient=False):
+def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=None, compute_orient=True):
     import scipy.linalg
     
     with tables.open_file(data_filename, mode='r') as data_file:
         x = np.asarray(data_file.root['pos'])
-        v = np.asarray(data_file.root['vel'])
         s = np.asarray(data_file.root['spin'])
         t = np.asarray(data_file.root['t'])
+        
 
-    if distortion_max is not None:
+    dts = np.diff(t)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        v = np.diff(x, axis=0) / dts.reshape(-1,1,1)
+    
+    if distortion_max is None:
+        ddts = dts
+    else:
         def remove_short(x):
             median = np.percentile(x, 50)
             short_step = x < (median / 10000)
             return x[~short_step]
 
-        dts = np.diff(t)
+        
         cutoff = False
         for rank in np.linspace(100,0,50):
             nominal_frame_length = np.percentile(remove_short(dts), rank)
@@ -48,7 +54,7 @@ def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=No
                 frames_per_step = frames_per_step[:cut_off]
                 ddts = ddts[:cut_off]
                 print(f"Cutting movie short after {cut_off} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
-    
+        
         re_t, re_x, re_v, re_s = [t[0]], [x[0]], [v[0]], [s[0]]
         _, part_num, dim, _ = s.shape
         I = np.eye(dim, dtype=np_dtype)
@@ -76,8 +82,13 @@ def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=No
            ,'pos': np.asarray(re_x) ,'pos_raw': np.asarray(x)
            ,'vel': np.asarray(re_x) ,'vel_raw': np.asarray(v)
            ,'spin': np.asarray(re_s) ,'spin_raw': np.asarray(s)
-           ,'orient': np.asarray(re_o)}
+           }
     data['frame_num'], data['part_num'], data['dim'] = data['pos'].shape
+    try:
+        data['orient'] = np.asarray(re_o)
+        print("Orientation computed")
+    except:
+        print("Orientation not computed")
     
     return part_params, wall_params, data
 
