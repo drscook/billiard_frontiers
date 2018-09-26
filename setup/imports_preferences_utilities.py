@@ -20,12 +20,14 @@ import pandas as pd
 try:
     import tables
 except:
+    print("Pytables not installed.  Installing now.")
     os.system('pip install --upgrade tables')
     import tables
 
 try:
     import numba as nb
 except:
+    print("Numba not installed.  Installing now.")
     os.system('pip install --upgrade numba')
     import numba as nb
 
