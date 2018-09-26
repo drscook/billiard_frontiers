@@ -3,8 +3,7 @@ import io
 import base64
 from IPython.display import HTML
 
-
-def read_and_interpolate(data_filename, frame_min=None, distortion_max=None, compute_orient=False):
+def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=None, compute_orient=False):
     import scipy.linalg
     
     with tables.open_file(data_filename, mode='r') as data_file:
@@ -41,7 +40,15 @@ def read_and_interpolate(data_filename, frame_min=None, distortion_max=None, com
     #         else:
     #             print(f"{mes} >= {distortion_max:.2f} -> use a tighter rank cutoff")
 
-
+        frame_num = np.sum(frames_per_step)
+        if frame_max is not None:
+            if frame_num > frame_max:
+                frame_cum = np.cumsum(frames_per_step)
+                cut_off = np.argmax(frame_cum <= frame_max)
+                frames_per_step = frames_per_step[:cut_off]
+                ddts = ddts[:cut_off]
+                print(f"Cutting movie short after {cut_off} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
+    
         re_t, re_x, re_v, re_s = [t[0]], [x[0]], [v[0]], [s[0]]
         _, part_num, dim, _ = s.shape
         I = np.eye(dim, dtype=np_dtype)
@@ -70,7 +77,7 @@ def read_and_interpolate(data_filename, frame_min=None, distortion_max=None, com
            ,'vel': np.asarray(re_x) ,'vel_raw': np.asarray(v)
            ,'spin': np.asarray(re_s) ,'spin_raw': np.asarray(s)
            ,'orient': np.asarray(re_o)}
-    data['step_num'], data['part_num'], data['dim'] = data['pos'].shape
+    data['frame_num'], data['part_num'], data['dim'] = data['pos'].shape
     
     return part_params, wall_params, data
 
@@ -85,23 +92,12 @@ def get_cell_translates(pos, cell_size):
     return [np.asarray(t) for t in translates]
 
 
-
-def animate(part_params, wall_params, data, movie_time=20, frame_max=None, show_trails=True):
+def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
     assert hasattr(data, 'orient'), "Must run read_and_interpolate with compute_orient=True"
         
-
-    frame_num = len(data['t'])
-    print(frame_num)
-    if frame_max is None:
-        frame_max = frame_num
-
-    if frame_num > frame_max:
-        print(f"Cutting movie short to satify frame_max.  Consider increasing anim_time or distortion_max.")
-        frame_num = frame_max
-        
-    t = data['t'][:frame_num]
-    x = data['pos'][:frame_num]
-    o = data['orient'][:frame_num]
+    t = data['t']
+    x = data['pos']
+    o = data['orient']
     mesh = np.asarray(part_params['mesh'])
     clr = part_params['clr']
 
