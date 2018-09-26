@@ -4,28 +4,21 @@ import base64
 from IPython.display import HTML
 
 def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=None, compute_orient=True):
+    print(distortion_max)
     import scipy.linalg
     
     with tables.open_file(data_filename, mode='r') as data_file:
-        x = np.asarray(data_file.root['pos'])
-        s = np.asarray(data_file.root['spin'])
-        t = np.asarray(data_file.root['t'])
-        
-
-    dts = np.diff(t)
-    with np.errstate(invalid='ignore', divide='ignore'):
-        v = np.diff(x, axis=0) / dts.reshape(-1,1,1)
+        dts = np.diff(data_file.root['t'])
     
     if distortion_max is None:
         ddts = dts
+        frames_per_step = np.ones_like(dts).astype(int)
     else:
         def remove_short(x):
             median = np.percentile(x, 50)
-            short_step = x < (median / 10000)
+            short_step = x < (median / 1000)
             return x[~short_step]
 
-        
-        cutoff = False
         for rank in np.linspace(100,0,50):
             nominal_frame_length = np.percentile(remove_short(dts), rank)
 
@@ -43,40 +36,54 @@ def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=No
             if distortion < distortion_max:
                 print(f"{mes} < {distortion_max:.2f} -> that will work!!")
                 break
-    #         else:
-    #             print(f"{mes} >= {distortion_max:.2f} -> use a tighter rank cutoff")
+#             else:
+#                 print(f"{mes} >= {distortion_max:.2f} -> use a tighter rank cutoff")
 
         frame_num = np.sum(frames_per_step)
+        cut_off = None
         if frame_max is not None:
             if frame_num > frame_max:
                 frame_cum = np.cumsum(frames_per_step)
-                cut_off = np.argmax(frame_cum <= frame_max)
+                cut_off = np.argmin(frame_cum <= frame_max)
                 frames_per_step = frames_per_step[:cut_off]
                 ddts = ddts[:cut_off]
                 print(f"Cutting movie short after {cut_off} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
         
-        re_t, re_x, re_v, re_s = [t[0]], [x[0]], [v[0]], [s[0]]
-        _, part_num, dim, _ = s.shape
-        I = np.eye(dim, dtype=np_dtype)
-        re_o = [np.repeat(I[np.newaxis], part_num, axis=0)]
+        
+    with tables.open_file(data_filename, mode='r') as data_file:
+        t = np.asarray(data_file.root['t'][:cut_off]).astype(np.float32)
+        x = np.asarray(data_file.root['pos'][:cut_off]).astype(np.float32)
+        s = np.asarray(data_file.root['spin'][:cut_off]).astype(np.float32)
+    
+    with np.errstate(invalid='ignore', divide='ignore'): 
+        v = np.diff(x, axis=0) / np.diff(t).reshape(-1,1,1)
+    v = np.append(v, v[[-1]], axis=0)
+    v[np.isinf(v)] = 0.0
+    v[np.isnan(v)] = 0.0
+        
+    re_t, re_x, re_v, re_s = [t[0]], [x[0]], [v[0]], [s[0]]
+    _, part_num, dim, _ = s.shape
+    I = np.eye(dim, dtype=np_dtype)
+    re_o = [np.repeat(I[np.newaxis], part_num, axis=0)]
 
-        for (i, ddt) in enumerate(ddts):
-            re_t[-1] = t[i]
-            re_x[-1] = x[i]
-            re_v[-1] = v[i]
-            re_s[-1] = s[i]
-            dx = re_v[-1] * ddt
-            if compute_orient:
+    for (i, ddt) in enumerate(ddts):
+        re_t[-1] = t[i]
+        re_x[-1] = x[i]
+        re_v[-1] = v[i]
+        re_s[-1] = s[i]
+        dx = re_v[-1] * ddt
+
+        if compute_orient:
                 do = [scipy.linalg.expm(ddt * U) for U in re_s[-1]] # incremental rotatation during each frame
-            for f in range(frames_per_step[i]):
-                re_t.append(re_t[-1] + ddt)
-                re_x.append(re_x[-1] + dx)
-                re_v.append(re_v[-1])
-                re_s.append(re_s[-1])
-                if compute_orient:
-        #             B = [A.dot(Z) for (A,Z) in zip(re_o[-1], do)] # rotates each particle the right amount
-                    B = np.einsum('pde,pef->pdf', re_o[-1], do)  # more efficient version of calculation above
-                    re_o.append(B)
+        for f in range(frames_per_step[i]):
+            re_t.append(re_t[-1] + ddt)
+            re_x.append(re_x[-1] + dx)
+            re_v.append(re_v[-1])
+            re_s.append(re_s[-1])
+            if compute_orient:
+    #             B = [A.dot(Z) for (A,Z) in zip(re_o[-1], do)] # rotates each particle the right amount
+                B = np.einsum('pde,pef->pdf', re_o[-1], do)  # more efficient version of calculation above
+                re_o.append(B)
     
     data = {'t': np.asarray(re_t), 't_raw': np.asarray(t)
            ,'pos': np.asarray(re_x) ,'pos_raw': np.asarray(x)
@@ -104,14 +111,16 @@ def get_cell_translates(pos, cell_size):
 
 
 def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
-    assert hasattr(data, 'orient'), "Must run read_and_interpolate with compute_orient=True"
+    try:
+        o = data['orient']
+    except:
+        raise Exception("Must run read_and_interpolate with compute_orient=True")
         
     t = data['t']
     x = data['pos']
-    o = data['orient']
     mesh = np.asarray(part_params['mesh'])
     clr = part_params['clr']
-
+    
     cell_translates = get_cell_translates(x, part_params['cell_size'])
     
     fig, ax = plt.subplots()
@@ -151,7 +160,7 @@ def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
                 trail[p].set_data(*(x[:s+1,p].T))
         return bdy + trail
     anim = animation.FuncAnimation(fig, update, init_func=init,
-                                   frames=frame_num, interval=movie_time*1000/frame_num, blit=True)
+                                   frames=data['frame_num'], interval=movie_time*1000/data['frame_num'], blit=True)
     plt.close()
     return anim
 
