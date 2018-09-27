@@ -2,11 +2,9 @@ from matplotlib import animation, rc
 import io
 import base64
 from IPython.display import HTML
+import scipy.linalg
 
-def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=None, compute_orient=True):
-    print(distortion_max)
-    import scipy.linalg
-    
+def interpolate(data_filename, frame_min=1, frame_max=None, distortion_max=None, compute_orient=True):
     with tables.open_file(data_filename, mode='r') as data_file:
         dts = np.diff(data_file.root['t'])
     
@@ -21,13 +19,32 @@ def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=No
 
         for rank in np.linspace(100,0,50):
             nominal_frame_length = np.percentile(remove_short(dts), rank)
-
+#             print(nominal_frame_length)
             frames_per_step = dts / nominal_frame_length # Divide each step into pieces of length as close to nominal_frame_length as possible
-            k = frame_min / np.sum(frames_per_step)  # Divide each step into more pieces to achieve frames_min; ensures desired frame_rate_min
+            
+            k = frame_min / np.sum(frames_per_step)  # Divide each step into more pieces to achieve frames_min; ensures desired frame_rate_min            
+#             print(f"frame_num = {frames_per_step.sum()}")
+#             print(k)
+            
             frames_per_step *= k
+#             print(f"frame_num = {frames_per_step.sum()}")
             frames_per_step = np.round(frames_per_step).astype(int)
+#             print(f"frame_num = {frames_per_step.sum()}")
             frames_per_step[frames_per_step<1] = 1
+#             print(f"frame_num = {frames_per_step.sum()}")
             ddts = dts / frames_per_step  # Compute frame length within each step
+            
+            frame_num = np.sum(frames_per_step)
+            cut_off = None
+            if frame_max is not None:
+                if frame_num > frame_max:
+                    frame_cum = np.cumsum(frames_per_step)
+                    cut_off = np.argmin(frame_cum <= frame_max)
+                    frames_per_step = frames_per_step[:cut_off]
+                    ddts = ddts[:cut_off]
+                    print(f"Cutting movie short after {cut_off} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
+
+            
 
             std = remove_short(ddts).std()
             mean = remove_short(ddts).mean()
@@ -39,15 +56,6 @@ def interpolate(data_filename, frame_min=None, frame_max=None, distortion_max=No
 #             else:
 #                 print(f"{mes} >= {distortion_max:.2f} -> use a tighter rank cutoff")
 
-        frame_num = np.sum(frames_per_step)
-        cut_off = None
-        if frame_max is not None:
-            if frame_num > frame_max:
-                frame_cum = np.cumsum(frames_per_step)
-                cut_off = np.argmin(frame_cum <= frame_max)
-                frames_per_step = frames_per_step[:cut_off]
-                ddts = ddts[:cut_off]
-                print(f"Cutting movie short after {cut_off} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
         
         
     with tables.open_file(data_filename, mode='r') as data_file:
