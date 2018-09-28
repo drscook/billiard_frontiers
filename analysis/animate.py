@@ -122,21 +122,29 @@ def get_cell_translates(pos, cell_size):
     return [np.asarray(t) for t in translates]
 
 
-def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
-    try:
-        o = data['orient']
-    except:
-        raise Exception("Must run read_and_interpolate with compute_orient=True")
-        
+def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_time=20, frame_rate_min=20, frame_max=None, save=True, display=False, dpi=None):
+    start = timer()
+    # To generate the movie, we must interpolate between collsion events.
+    # Because the time between collision event varies, we get time distortion.
+    # We can correct this distortion by adding more interpolated frames, but this increases animation time.
+    # Here are several parameters to help the user balance distortion against animation time.
+    # Setting both distortion_max and frame_max low will cut the movie short to accomodate.
+    
+    frame_min = movie_time * frame_rate_min
+    part_params, wall_params, data_filename, run_path = find_records(date, run)
+
+    data = interpolate(data_filename, frame_min=frame_min, frame_max=frame_max, distortion_max=distortion_max, compute_orient=True)
+    print(f"I will attempt to animate {data['frame_num']} frames")
+    
     t = data['t']
     x = data['pos']
+    o = data['orient']
     mesh = np.asarray(part_params['mesh'])
     clr = part_params['clr']
     
     cell_translates = get_cell_translates(x, part_params['cell_size'])
     
-    h=4
-    fig, ax = plt.subplots(figsize=(16/9*h, h))
+    fig, ax = plt.subplots()
     ax.set_aspect('equal')
     ax.grid(False)
     fc = ax.get_facecolor()
@@ -175,8 +183,20 @@ def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
     anim = animation.FuncAnimation(fig, update, init_func=init,
                                    frames=data['frame_num'], interval=movie_time*1000/data['frame_num'], 
                                    blit=True)
-    print(f"{fig.get_figwidth()} x {fig.get_figheight()}")
     plt.close()
+    
+    if save:
+        anim_filename = run_path+'animation.mp4'
+        anim.save(filename=anim_filename, dpi=dpi)    # save animation as mp4
+        if display:
+            play_video(anim_filename)    # show in notebook - resizing issues
+    elif display:
+        display(HTML(anim.to_jshtml()))        # diplays video in notebook
+
+    elapsed = timer() - start
+    anim_rate = frame_num / elapsed
+    print(f"I animated {frame_num} frames / {elapsed:.2f} sec = {anim_rate:.2f} frames / sec")
+    
     return anim
 
 def play_video(fname):
