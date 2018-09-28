@@ -131,7 +131,7 @@ def play_video(fname):
          </video>'''.format(encoded.decode('ascii'))))
 
 
-def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_time=20, frame_rate_min=20, frame_max=None, save=True, display=False, dpi=None):
+def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_time=20, frame_rate_min=20, frame_max=None, save=True, embed=False, dpi=None):
     start = timer()
     # To generate the movie, we must interpolate between collsion events.
     # Because the time between collision event varies, we get time distortion.
@@ -197,9 +197,9 @@ def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_tim
     if save:
         anim_filename = run_path+'animation.mp4'
         anim.save(filename=anim_filename, dpi=dpi)    # save animation as mp4
-        if display:
+        if embed:
             play_video(anim_filename)    # show in notebook - resizing issues
-    elif display:
+    elif embed:
         display(HTML(anim.to_jshtml()))        # diplays video in notebook
 
     elapsed = timer() - start
