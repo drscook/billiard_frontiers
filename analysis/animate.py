@@ -109,7 +109,7 @@ def interpolate(data_filename, frame_min=1, frame_max=None, distortion_max=None,
     except:
         print("Orientation not computed")
     data_file.close()
-    return part_params, wall_params, data
+    return data
 
 
 def get_cell_translates(pos, cell_size):
