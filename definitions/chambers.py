@@ -19,7 +19,7 @@ def sinai(cell_size, scatter_radius):
     cell_size = np.asarray(cell_size, dtype=np_dtype)
     if np.any(scatter_radius > cell_size):
         raise Exception(f"scatter radius {scatter_radius} larger than cell size {cell_size}")
-    walls = box(cell_size)
+    walls = box(cell_size)[0]
     base_point = 0.0 * walls[0].base_point
     walls.append(SphereWall(base_point=base_point, radius=scatter_radius, side='outside'))
     return walls, cell_size
@@ -52,7 +52,7 @@ def lorentz_rectangle(cell_size, scatter_radius):
     return walls, cell_size
 
 
-def lorentz_hexagonal(scatter_radius, part_radius, horizon_factor):
+def lorentz_hexagon(scatter_radius, part_radius, horizon_factor):
     """
     trapped/overlap: hf < 0; finite horizon: 0 <= hf < 1; infinite horizon: 1 <= hf < inf
     """    
@@ -70,13 +70,13 @@ def lorentz_hexagonal(scatter_radius, part_radius, horizon_factor):
     # These are all essentially redundant, but serve different purposes.
     # They are defined below with associated scales.  Recall that b = sqrt(3)/2
     # horizon factor = (k - b) / (1 - b)
-    # k = horizon factor * (1 - b) + b
+    # k = (1 - b) * horizon factor + b
     # linear density ld = x / R
     # trapped/overlap: hf < 0; finite horizon: 0 <= hf < 1; infinite horizon: 1 <= hf < inf
     # trapped/overlap: k  < b; finite horizon: b <= k  < 1; infinite horizon: 1 <= b  < inf
     # trapped/overlap: ld > 1; finite horizon: b <= ld < 1; infinite horizon: 0 <= ld < b
     
-    k = horizon_factor * (1 - b) + b
+    k = (1 - b) * horizon_factor + b
     x = x_crit * k
     y = 2 * x * b
     cell_size = np.array([x,y])
