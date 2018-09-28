@@ -5,8 +5,19 @@ from IPython.display import HTML
 import scipy.linalg
 
 def interpolate(data_filename, frame_min=1, frame_max=None, distortion_max=None, compute_orient=True):
-    with tables.open_file(data_filename, mode='r') as data_file:
-        dts = np.diff(data_file.root['t'])
+    data_file = tables.open_file(data_filename, mode='r')
+    t = data_file.root['t']
+    dts = np.diff(t)
+    
+    def get_cutoff(frames_per_step, frame_max=None):
+        cutoff = None
+        if frame_max is not None:
+            frame_num = np.sum(frames_per_step)
+            if frame_num > frame_max:
+                frame_cum = np.cumsum(frames_per_step)
+                cutoff = np.argmax(frame_cum > frame_max)
+        return cutoff
+
     
     if distortion_max is None:
         ddts = dts
@@ -17,39 +28,25 @@ def interpolate(data_filename, frame_min=1, frame_max=None, distortion_max=None,
             short_step = x < (median / 1000)
             return x[~short_step]
 
-        for rank in np.linspace(100,0,50):
-            nominal_frame_length = np.percentile(remove_short(dts), rank)
-#             print(nominal_frame_length)
+        median_step_length = np.percentile(remove_short(dts), 50)        
+        for rank in np.linspace(1.0, 0.0, 50):
+            nominal_frame_length = median_step_length * rank
             frames_per_step = dts / nominal_frame_length # Divide each step into pieces of length as close to nominal_frame_length as possible
-            
-            k = frame_min / np.sum(frames_per_step)  # Divide each step into more pieces to achieve frames_min; ensures desired frame_rate_min            
-#             print(f"frame_num = {frames_per_step.sum()}")
-#             print(k)
-            
+            k = max(frame_min / np.sum(frames_per_step), 1.0)  # Divide each step into more pieces to achieve frames_min; ensures desired frame_rate_min            
             frames_per_step *= k
-#             print(f"frame_num = {frames_per_step.sum()}")
             frames_per_step = np.round(frames_per_step).astype(int)
-#             print(f"frame_num = {frames_per_step.sum()}")
             frames_per_step[frames_per_step<1] = 1
-#             print(f"frame_num = {frames_per_step.sum()}")
             ddts = dts / frames_per_step  # Compute frame length within each step
             
-            frame_num = np.sum(frames_per_step)
-            cut_off = None
-            if frame_max is not None:
-                if frame_num > frame_max:
-                    frame_cum = np.cumsum(frames_per_step)
-                    cut_off = np.argmin(frame_cum <= frame_max)
-                    frames_per_step = frames_per_step[:cut_off]
-                    ddts = ddts[:cut_off]
-                    print(f"Cutting movie short after {cut_off} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
-
-            
-
-            std = remove_short(ddts).std()
-            mean = remove_short(ddts).mean()
-            distortion = std / mean
-            mes = f"rank cutoff = {rank:.0f} -> distortion = {distortion:.2f}"
+            cutoff = get_cutoff(frames_per_step, frame_max=frame_max)
+            if cutoff is not None:
+#                 dts = dts[:cutoff]
+                frames_per_step = frames_per_step[:cutoff]
+                ddts = ddts[:cutoff]
+#                 print(f"Cutting movie short after {cutoff} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
+            rs = remove_short(ddts)
+            distortion = rs.std() / rs.mean()
+            mes = f"rank cutoff = {rank:.2f} -> distortion = {distortion:.2f}"
             if distortion < distortion_max:
                 print(f"{mes} < {distortion_max:.2f} -> that will work!!")
                 break
@@ -57,11 +54,18 @@ def interpolate(data_filename, frame_min=1, frame_max=None, distortion_max=None,
 #                 print(f"{mes} >= {distortion_max:.2f} -> use a tighter rank cutoff")
 
         
+
+    cutoff = get_cutoff(frames_per_step, frame_max=frame_max)
+    if cutoff is not None:
+        frames_per_step = frames_per_step[:cutoff]
+        ddts = ddts[:cutoff]
+        print(f"Cutting movie short after {cutoff} collisions to satify frame_max.  Consider increasing frame_max via anim_time or distortion_max.")
+
         
-    with tables.open_file(data_filename, mode='r') as data_file:
-        t = np.asarray(data_file.root['t'][:cut_off]).astype(np.float32)
-        x = np.asarray(data_file.root['pos'][:cut_off]).astype(np.float32)
-        s = np.asarray(data_file.root['spin'][:cut_off]).astype(np.float32)
+#     with tables.open_file(data_filename, mode='r') as data_file:
+    t = np.asarray(data_file.root['t'][:cutoff]).astype(np.float32)
+    x = np.asarray(data_file.root['pos'][:cutoff]).astype(np.float32)
+    s = np.asarray(data_file.root['spin'][:cutoff]).astype(np.float32)
     
     with np.errstate(invalid='ignore', divide='ignore'): 
         v = np.diff(x, axis=0) / np.diff(t).reshape(-1,1,1)
@@ -104,7 +108,7 @@ def interpolate(data_filename, frame_min=1, frame_max=None, distortion_max=None,
         print("Orientation computed")
     except:
         print("Orientation not computed")
-    
+    data_file.close()
     return part_params, wall_params, data
 
 
@@ -131,7 +135,8 @@ def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
     
     cell_translates = get_cell_translates(x, part_params['cell_size'])
     
-    fig, ax = plt.subplots()
+    h=4
+    fig, ax = plt.subplots(figsize=(16/9*h, h))
     ax.set_aspect('equal')
     ax.grid(False)
     fc = ax.get_facecolor()
@@ -168,7 +173,9 @@ def animate(part_params, wall_params, data, movie_time=20, show_trails=True):
                 trail[p].set_data(*(x[:s+1,p].T))
         return bdy + trail
     anim = animation.FuncAnimation(fig, update, init_func=init,
-                                   frames=data['frame_num'], interval=movie_time*1000/data['frame_num'], blit=True)
+                                   frames=data['frame_num'], interval=movie_time*1000/data['frame_num'], 
+                                   blit=True)
+    print(f"{fig.get_figwidth()} x {fig.get_figheight()}")
     plt.close()
     return anim
 

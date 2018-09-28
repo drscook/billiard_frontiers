@@ -23,7 +23,21 @@ def sinai(cell_size, scatter_radius):
     base_point = 0.0 * walls[0].base_point
     walls.append(SphereWall(base_point=base_point, radius=scatter_radius, side='outside'))
     return walls
+
+
+def sinai_double(cell_size, scatter_radius):
+    cell_size = np.asarray(cell_size, dtype=np_dtype)
+    cell_size[0] *= 2
     
+    if np.any(scatter_radius > cell_size):
+        raise Exception(f"scatter radius {scatter_radius} larger than cell size {cell_size}")
+    walls = box(cell_size)
+    base_point = np.array([cell_size[1], 0])
+    walls.append(SphereWall(base_point=   base_point, radius=scatter_radius, side='outside'))
+    walls.append(SphereWall(base_point=-1*base_point, radius=scatter_radius, side='outside'))
+    return walls, cell_size
+
+
 def lorentz_rectangle(cell_size, scatter_radius):
     walls = sinai(cell_size, scatter_radius)
     s = -1
