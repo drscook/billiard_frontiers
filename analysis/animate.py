@@ -122,6 +122,15 @@ def get_cell_translates(pos, cell_size):
     return [np.asarray(t) for t in translates]
 
 
+def play_video(fname):
+    video = io.open(fname, 'r+b').read()
+    encoded = base64.b64encode(video)
+
+    display(HTML(data='''<video alt="test" controls>
+         <source src="data:video/mp4;base64,{0}" type="video/mp4" />
+         </video>'''.format(encoded.decode('ascii'))))
+
+
 def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_time=20, frame_rate_min=20, frame_max=None, save=True, display=False, dpi=None):
     start = timer()
     # To generate the movie, we must interpolate between collsion events.
@@ -194,16 +203,9 @@ def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_tim
         display(HTML(anim.to_jshtml()))        # diplays video in notebook
 
     elapsed = timer() - start
-    anim_rate = frame_num / elapsed
-    print(f"I animated {frame_num} frames / {elapsed:.2f} sec = {anim_rate:.2f} frames / sec")
+    anim_rate = data['frame_num'] / elapsed
+    print(f"I animated {data['frame_num']} frames / {elapsed:.2f} sec = {anim_rate:.2f} frames / sec")
     
     return anim
 
-def play_video(fname):
-    video = io.open(fname, 'r+b').read()
-    encoded = base64.b64encode(video)
-
-    display(HTML(data='''<video alt="test" controls>
-         <source src="data:video/mp4;base64,{0}" type="video/mp4" />
-         </video>'''.format(encoded.decode('ascii'))))
 
