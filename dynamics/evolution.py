@@ -1,5 +1,6 @@
 def run_experiment(part, walls, free_mem_to_use=0.5, write_to_file=True, report_period=None):
     start = timer()
+    print("=====================================================================================")
     
     with np.errstate(invalid='ignore'):
         initialize(part, walls)
