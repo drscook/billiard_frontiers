@@ -10,7 +10,7 @@ scook@tarleton.edu
 
 Implements billiard dynamics of many spherical particles in arbitrary dimension with standard and non-standard particle-wall and particle-particle collision maps using either standard CPU serial mode or accelerated parallel mode using NVIDIA GPU with numba cuda.
 
-Currently supports the standard specular collision and the no-slip collision law introduced by Groomhead and Gutkin and extended by Chris Cox and Renato Feres.  See:
+Currently supports the standard specular collision and the no-slip collision law introduced by Broomhead and Gutkin and extended by Chris Cox and Renato Feres.  See:
 
 - http://www.sciencedirect.com/science/article/pii/016727899390205F?via%3Dihub
 - https://arxiv.org/abs/1602.01490
