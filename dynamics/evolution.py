@@ -154,30 +154,58 @@ def next_state(part, walls, force=0):
         part.vel[:,-1] += accel * part.dt
 
     part.t += part.dt
-        
-    pw_events = (part.pw_dt - part.dt) < thresh
-    pw_counts = np.sum(pw_events, axis=-1)
-    pw_tot = np.sum(pw_events)
+
+
+    def find_cmplx(part):
+        pw_counts = np.sum(part.pw_events, axis=-1)
+        pp_counts = np.sum(part.pp_events, axis=-1)
+        cmplx = np.nonzero((pw_counts + pp_counts) > 1)[0]
+        if len(cmplx) > 0:
+            part.record()  # record state before and after re-randomizing position to animations look right
+            for p in cmplx:
+                part.rand_pos(p)
+                part.pw_events[p,:] = False
+                part.pp_events[p,:] = False
+                part.pp_events[:,p] = False
+        return cmplx
     
-    pp_events = (part.pp_dt - part.dt) < thresh
-    pp_counts = pp_events
-    pp_tot = np.sum(pp_events)
-    
-    if (pw_tot == 0) & (pp_tot == 2):
-        p, q = np.nonzero(pp_counts)[0]
-        part.col = {'p':p, 'q':q}
-        part.pp_mask[p,q] = True
-        part.pp_mask[q,p] = True
-        part.resolve_pp_collision(p, q)
-    elif (pw_tot == 1) & (pp_tot == 0):
-        p = np.argmax(pw_counts)
-        w = np.argmax(pw_events[p])
+    part.pw_events = (part.pw_dt - part.dt) < thresh
+    part.pp_events = (part.pp_dt - part.dt) < thresh
+    cmplx = find_cmplx(part)
+    if len(cmplx) > 0:
+        print(f"COMPLEX COLLISION DETECTED. Re-randomized positions of particles {cmplx}")
+        cmplx = find_cmplx(part)
+        if len(cmplx) > 0:
+            raise Exception(f"There are still complex collisions.  I don't understand why.  These particles are involve {cmplx}")
+
+    for p, w in np.array(np.nonzero(part.pw_events)).T:
         part.col = {'p':p, 'w':w}
         part.pw_mask[p,w] = True
         walls[w].resolve_pw_collision(part, walls, p)
-    else:
-        P = np.nonzero(pp_counts + pw_counts)[0]
-        print('COMPLEX COLLISION DETECTED. Re-randomizing positions of particles {}'.format(P))
-        part.record()  # record state before and after re-randomizing position to animations look right
-        for p in P:
-            part.rand_pos(p)
+
+    for p, q in np.array(np.nonzero(part.pp_events)).T:
+        if p < q:
+            part.col = {'p':p, 'q':q}
+            part.pp_mask[p,q] = True
+            part.pp_mask[q,p] = True
+            part.resolve_pp_collision(p, q)
+
+    
+#     if (pw_tot == 0) & (pp_tot == 2):
+#         p, q = np.nonzero(pp_counts)[0]
+#         part.col = {'p':p, 'q':q}
+#         part.pp_mask[p,q] = True
+#         part.pp_mask[q,p] = True
+#         part.resolve_pp_collision(p, q)
+#     elif (pw_tot == 1) & (pp_tot == 0):
+#         p = np.argmax(pw_counts)
+#         w = np.argmax(pw_events[p])
+#         part.col = {'p':p, 'w':w}
+#         part.pw_mask[p,w] = True
+#         walls[w].resolve_pw_collision(part, walls, p)
+#     else:
+#         P = np.nonzero(pp_counts + pw_counts)[0]
+#         print('COMPLEX COLLISION DETECTED. Re-randomizing positions of particles {}'.format(P))
+#         part.record()  # record state before and after re-randomizing position to animations look right
+#         for p in P:
+#             part.rand_pos(p)
