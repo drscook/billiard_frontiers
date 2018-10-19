@@ -134,10 +134,12 @@ def initialize(part, walls):
 
 def next_state(part, walls, force=0):
     get_dt(part, walls)
+    print(part.pp_dt.shape)
     part.dt = min(np.min(part.pw_dt), np.min(part.pp_dt))
     part.pw_mask[:] = False
     part.pp_mask[:] = False
-
+    print(part.pp_dt.shape)
+    
     if np.isinf(part.dt):
         raise Exception("No future collisions detected")
         
