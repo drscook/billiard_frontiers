@@ -27,7 +27,7 @@ def run_experiment(part, walls, free_mem_to_use=0.5, write_to_file=True, report_
         
         part.record()
 
-        if step % report_period == 0:
+        if (step % report_period == 0) or (part.terminate):
             completed = step / part.max_steps
             elapsed = timer() - start
             predicted = elapsed / completed
