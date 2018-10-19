@@ -164,7 +164,7 @@ def next_state(part, walls, force=0):
             part.record()  # record state before and after re-randomizing position to animations look right
             for p in cmplx:
                 part.rand_pos(p)
-                print(part.pw_events.shape)
+#                 print(part.pw_events.shape)
                 print(part.pp_events.shape)
                 part.pw_events[p,:] = False
                 part.pp_events[p,:] = False
@@ -173,6 +173,8 @@ def next_state(part, walls, force=0):
     
     part.pw_events = (part.pw_dt - part.dt) < thresh
     part.pp_events = (part.pp_dt - part.dt) < thresh
+    print(part.pp_dt.shape)
+    print(part.pp_events.shape)
     cmplx = find_cmplx(part)
     if len(cmplx) > 0:
         print(f"COMPLEX COLLISION DETECTED. Re-randomized positions of particles {cmplx}")
