@@ -96,7 +96,7 @@ def lorentz_hexagon(scatter_radius, part_radius, horizon_factor):
 
 
 
-def parallel_lines(cell_size):
+def parallel_lines_horizontal(cell_size):
     cell_size = np.asarray(cell_size, dtype=np_dtype)
     walls = []
     walls.append(FlatWall(base_point = [0, cell_size[1]], normal = [0, -1], tangents = [[cell_size[0], 0]]))
@@ -104,6 +104,29 @@ def parallel_lines(cell_size):
     return walls, cell_size
 
 
+def parallel_lines_vertical(cell_size):
+    cell_size = np.asarray(cell_size, dtype=np_dtype)
+    walls = []
+    walls.append(FlatWall(base_point = [cell_size[0], 0],  normal = [-1, 0], tangents = [[0, cell_size[1]]]))
+    walls.append(FlatWall(base_point = [-cell_size[0], 0], normal = [ 1, 0], tangents = [[0, cell_size[1]]]))
+    return walls, cell_size
+
+def non_parallel_lines(theta, L):
+    walls = []
+    
+    walls.append(FlatWall(base_point = [L, 0], normal = [0, 1], tangents = [[-L, 0]]))
+    walls.append(FlatWall(base_point = [L*math.cos(theta), L*math.sin(theta)], normal = [L*math.sin(theta), -L*math.cos(theta)], tangents = [[L*math.cos(theta), L*math.sin(theta)]]))
+    
+    return walls, []
+
+
+# def non_parallel_planes(width):
+#     walls = []
+#     eps=0.001
+#     walls.append(FlatWall(base_point = [0, width, 0], normal = [0, -1, 0], tangents = [[1, 0, 0], [0, 0, 1]]))
+#     walls.append(FlatWall(base_point = [0, -width, 0], normal = [math.sin(eps), math.cos(eps), 0], tangents = [[math.cos(eps), -math.sin(eps), 0], [0, -math.sin(eps), math.cos(eps)]]))
+    
+#     return walls, []
 
 ##################################################################
 ### Not Recently Tested - may be out of date ###

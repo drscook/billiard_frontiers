@@ -151,7 +151,8 @@ def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_tim
     mesh = np.asarray(part_params['mesh'])
     clr = part_params['clr']
     
-    cell_translates = get_cell_translates(x, part_params['cell_size'])
+#     cell_translates = get_cell_translates(x, part_params['cell_size'])
+    cell_translates = [np.array([0,0])]
     
     fig, ax = plt.subplots()
     ax.set_aspect('equal')

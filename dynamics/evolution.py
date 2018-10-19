@@ -145,12 +145,13 @@ def next_state(part, walls, force=0):
         part.pos += part.vel * part.dt
         part.pos_loc += part.vel * part.dt
     else:  # Currently, force only works for cylinders and must be axial.  We plan to generalize this in the future.
-        part.pos[:,-1] += force * part.dt**2 /(2 * part.mass) + part.vel[:,-1] * part.dt
-        part.pos_loc[:,-1] += force * part.dt**2 /(2 * part.mass) + part.vel[:,-1] * part.dt
+        accel = part.force / part.mass
+        part.pos[:,-1] += accel * part.dt**2 / 2 + part.vel[:,-1] * part.dt
+        part.pos_loc[:,-1] += accel * part.dt**2 / 2 + part.vel[:,-1] * part.dt
         
-        part.pos[:,0:-1] += part.vel[:,0:-1] * part.dt
-        part.pos_loc[:,0:-1] += part.vel[:,0:-1] * part.dt
-        part.vel[:,-1] += force/part.mass * part.dt
+        part.pos[:,:-1] += part.vel[:,:-1] * part.dt
+        part.pos_loc[:,:-1] += part.vel[:,:-1] * part.dt
+        part.vel[:,-1] += accel * part.dt
 
     part.t += part.dt
         
