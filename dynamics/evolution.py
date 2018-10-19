@@ -164,6 +164,7 @@ def next_state(part, walls, force=0):
             part.record()  # record state before and after re-randomizing position to animations look right
             for p in cmplx:
                 part.rand_pos(p)
+                print(part.pw_events.shape)
                 part.pw_events[p,:] = False
                 part.pp_events[p,:] = False
                 part.pp_events[:,p] = False
