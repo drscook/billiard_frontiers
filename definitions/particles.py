@@ -10,7 +10,7 @@ class Particles():
         self.cell_size = np.asarray(cell_size, dtype = np_dtype)
         self.mode = mode
         self.force = force   # Currently, force only works for cylinders and must be axial.  We plan to generalize this in the future.
-        part.terminate = False
+        self.terminate = False
         
 
         
