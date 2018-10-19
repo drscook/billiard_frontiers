@@ -42,7 +42,6 @@ class PW_TerminateLaw(PW_CollisionLaw):
     def resolve_collision(self, part, walls, p, w):
         part.terminate = True
         part.hist_length = 0
-        raise Exception('particle {} hit termination wall {}'.format(p, w))
 
         
 class PW_NoSlipLaw(PW_CollisionLaw):
