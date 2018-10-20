@@ -1,5 +1,5 @@
 def define_solver_gpu():
-    global solver_gpu, solve_quadratic_gpu, solve_linear_gpu, row_min_gpu
+    global solver_gpu, solve_quadratic_gpu, solve_linear_gpu, min_gpu
 
     @cuda.jit(device=True)
     def solver_gpu(c2, c1, c0, mask):
@@ -50,16 +50,25 @@ def define_solver_gpu():
 
 
     @cuda.jit(device=True)
-    def row_min_gpu(A):
-        tx = cuda.threadIdx.x
-        ty = cuda.threadIdx.y
-        m = float(cuda.blockDim.x)
-        cuda.syncthreads()
-        while m > 1:
-            n = m / 2
-            k = int(math.ceil(n))
-            if (ty + k) < m:
-                if A[tx,ty] > A[tx,ty+k]:
-                    A[tx,ty] = A[tx,ty+k]
-            m = n
+    def min_gpu(A):
+        row_loc = cuda.threadIdx.x
+        col_loc = cuda.threadIdx.y
+        idx_loc = row_loc * cuda.blockDim.y + col_loc
+        
+        M = float(cuda.blockDim.x)
+        while M > 1:
+            i = int(math.ceil(M/2))
+            if (row_loc + i) < M:
+                if  A[row_loc, col_loc] > A[row_loc+i, col_loc]:
+                    A[row_loc, col_loc] = A[row_loc+i, col_loc]
+            M = i
+            cuda.syncthreads()
+            
+        N = float(cuda.blockDim.y)
+        while N > 1:
+            j = int(math.ceil(N/2))
+            if (col_loc + j) < N:
+                if  A[0, col_loc] > A[0, col_loc+j]:
+                    A[0, col_loc] = A[0, col_loc+j]
+            N = j
             cuda.syncthreads()

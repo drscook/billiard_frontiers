@@ -32,7 +32,7 @@ def interpolate(data_filename, frame_min=1, frame_max=None, distortion_max=None,
         for rank in np.linspace(1.0, 0.0, 50):
             nominal_frame_length = median_step_length * rank
             frames_per_step = dts / nominal_frame_length # Divide each step into pieces of length as close to nominal_frame_length as possible
-            k = max(frame_min / np.sum(frames_per_step), 1.0)  # Divide each step into more pieces to achieve frames_min; ensures desired frame_rate_min            
+            k = max(frame_min / np.sum(frames_per_step), 1.0)  # Divide each step into more pieces to achieve frames_min; ensures desired frame_rate
             frames_per_step *= k
             frames_per_step = np.round(frames_per_step).astype(int)
             frames_per_step[frames_per_step<1] = 1
@@ -131,7 +131,7 @@ def play_video(fname):
          </video>'''.format(encoded.decode('ascii'))))
 
 
-def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_time=20, frame_rate_min=20, frame_max=None, save=True, embed=False, dpi=None):
+def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_time=20, frame_rate=20, frame_max=None, save=True, embed=False, dpi=None):
     start = timer()
     # To generate the movie, we must interpolate between collsion events.
     # Because the time between collision event varies, we get time distortion.
@@ -139,7 +139,7 @@ def animate(date=None, run=None, show_trails=True, distortion_max=0.1, movie_tim
     # Here are several parameters to help the user balance distortion against animation time.
     # Setting both distortion_max and frame_max low will cut the movie short to accomodate.
     
-    frame_min = movie_time * frame_rate_min
+    frame_min = movie_time * frame_rate
     part_params, wall_params, data_filename, run_path = find_records(date, run)
 
     data = interpolate(data_filename, frame_min=frame_min, frame_max=frame_max, distortion_max=distortion_max, compute_orient=True)
