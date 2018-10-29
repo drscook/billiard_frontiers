@@ -102,6 +102,11 @@ def initialize(part, walls):
     part.pp_dt = np.inf
     part.pw_events_old = np.full([part.num, len(walls)], False, dtype=bool)
     part.pp_events_old = np.full([part.num, part.num],   False, dtype=bool)
+    
+    part.pw_events_new = part.pw_events_new.copy()
+    part.pp_events_new = part.pp_events_new.copy()
+    
+    
 
     if part.mode == 'serial':
         def get_dt(part, walls):
