@@ -25,7 +25,6 @@ class PP_SpecularLaw(PP_CollisionLaw):
 class PP_NoSlipLaw(PP_CollisionLaw):
     name = 'PP_NoSlipLaw'
     def resolve_collision(self, part, p1, p2):
-        print("Using PP_NoSlipLaw")
         nu = part.pos[p2] - part.pos[p1]
         nu = make_unit(nu)
         m1 = part.mass[p1]
