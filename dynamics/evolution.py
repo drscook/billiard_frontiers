@@ -98,8 +98,8 @@ def initialize(part, walls):
         w.get_mesh()
     part.KE_init = part.get_KE()
     
-    part.pw_dt_min = np.inf
-    part.pp_dt_min = np.inf
+    part.pw_dt = np.inf
+    part.pp_dt = np.inf
     part.pw_events_old = np.full([part.num, len(walls)], False, dtype=bool)
     part.pp_events_old = np.full([part.num, part.num],   False, dtype=bool)
 
